@@ -1,0 +1,26 @@
+{
+  "name": "trotalofire",
+  "version": "0.0.1",
+  "description": "Server side to process interconnection betwen trotalo and third party systems",
+  "main": "index.js",
+  "scripts": {
+    "start": "node dist\\server.js",
+    "debug": "tsc && nodemon --inspect-brk dist\\server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "trotalo",
+  "license": "ISC",
+  "dependencies": {
+    "@firebase/app-types": "0.1.1",
+    "axios": "0.17.1",
+    "express": "^4.16.2",
+    "firebase-admin": "5.8.1",
+    "gulp": "3.9.1",
+    "gulp-typescript": "4.0.0-alpha.2",
+    "typescript": "2.6.2",
+    "winston": "2.4.0"
+  },
+  "devDependencies": {
+    "nodemon": "1.14.11"
+  }
+}
