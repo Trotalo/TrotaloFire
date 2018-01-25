@@ -1,4 +1,5 @@
 import { FireController } from './firebase/fire-controller'
+import * as express from 'express';
 
 class Server{
 
@@ -14,8 +15,16 @@ class Server{
         this.fireController.initListeners();
     }
 
-    public printHelloWorlds(val?:string){
-        console.log('Hola mundo!' + this.value + ' ' + val);        
+    public startWebServer(){
+        var app = express();
+        var port = parseInt(process.env.PORT, 10) || 5000;
+        app.set("port", port);
+        app.get("/", function(request, response) {
+          response.send("Hello World!");
+        });
+        app.listen(port, function() {
+          console.log("Node app is running at localhost:" + port);
+        });
     }
 }
 
@@ -23,3 +32,4 @@ let server: Server = new Server();
 
 //app.printHelloWorlds('papayon');
 server.start();
+server.startWebServer();
