@@ -41,12 +41,12 @@ export class ColppyBase{
         }
       }
       this.makeHttpPost(this.endpoint, loginRequest)
-      .then((response)=>{
+      .then((response: any)=>{
         this.currentKey = response['data'].response.data.claveSesion;
         this.loginTime = Date.now();
         this.logger.log('info', 'connection started with id ' + this.currentKey);
       })
-      .catch((error)=>{
+      .catch((error: any)=>{
         this.logger.log('error', error);
       });
     }
@@ -57,17 +57,17 @@ export class ColppyBase{
    * @param {string} url     the url to call
    * @param {[type]} payload the payload to send as a post
    */
-  public makeHttpPost(url:string, payload){
-    return new Promise(function (resolve, reject) {
+  public makeHttpPost(url:string, payload: any){
+    return new Promise(function (resolve: any, reject: any) {
       //setTimeout(() => resolve(), N);
       axios.post(url, payload)
-      .then((response)=>{
+      .then((response: any)=>{
         if(response['data'].response.success === false){
           reject(response['data'].response.message);
         }else{
           resolve(response);  
         }
-      }).catch((error)=>{
+      }).catch((error: any)=>{
         if (error.response) {
             // The request was made and the server responded with a status code
             // that falls out of the range of 2xx
@@ -94,13 +94,13 @@ export class ColppyBase{
    * @param {string} url [description]
    */
   public makeHttpGet(url:string){
-    return new Promise( (resolve, reject) =>{
+    return new Promise( (resolve: any, reject: any) =>{
       //setTimeout(() => resolve(), N);
       axios.get(url)
-      .then((response)=>{
+      .then((response: any)=>{
         //this.logger.log('info', 'response from ', url, response );
         resolve(response);
-      }).catch((error)=>{
+      }).catch((error: any)=>{
         if (error.response) {
             // The request was made and the server responded with a status code
             // that falls out of the range of 2xx
@@ -122,8 +122,8 @@ export class ColppyBase{
     }); 
   }
 
-  public getNextInvoiceNumber(idEmpresa, idFacturacion){
-    return new Promise((resolve, reject) =>{
+  public getNextInvoiceNumber(idEmpresa: any, idFacturacion: any){
+    return new Promise((resolve: any, reject: any) =>{
       //setTimeout(() => resolve(), N);
       var getNextInvReq = {
         "auth": this.auth,
@@ -143,11 +143,11 @@ export class ColppyBase{
       };
 
       this.makeHttpPost(this.endpoint, getNextInvReq)
-        .then((response)=>{
+        .then((response: any)=>{
           //var returnValue = response['data'].response.data.prefijo + '-' + response['data'].response.data.proximoNum;
           resolve({prefix: response['data'].response.data.prefijo, number: response['data'].response.data.proximoNum});
         })
-        .catch((error)=>{
+        .catch((error: any)=>{
           reject(error);
         })
 

@@ -19,11 +19,11 @@ export class NewClientService extends ColppyBase implements IFireBizService{
   }
 
 
-  createBizObject(fireClient){
+  createBizObject(fireClient: any){
     console.log('call From service' + fireClient);
     this.openSession();
     var getOperator = this.db.ref('operators/' + fireClient.operator);
-    getOperator.on('value', (snapshot)=>{
+    getOperator.on('value', (snapshot: any)=>{
       var operator = snapshot.val();
       this.logger.log('info', 'loaded operator" ' + util.inspect(operator));
       var clientRequest = {
@@ -80,14 +80,14 @@ export class NewClientService extends ColppyBase implements IFireBizService{
       }
 
       this.makeHttpPost(this.endpoint, clientRequest)
-        .then((response)=>{
+        .then((response: any)=>{
           this.logger.log('info', 'Client created ' + util.inspect(response['data']));
           if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
             var updateoperator = this.db.ref('accounting/clients/' + fireClient.key + '/colppyId');
             updateoperator.set(response['data'].response.data.idCliente);
           }
         })
-        .catch((error)=>{
+        .catch((error: any)=>{
           this.logger.log('error', error);
         });
 

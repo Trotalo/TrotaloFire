@@ -20,39 +20,39 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
   }
 
 
-  createBizObject(fireInvoice){
+  createBizObject(fireInvoice: any){
     console.log('call From InvoiceService' + fireInvoice);
     this.openSession();
     var getOperator = this.db.ref('operators/' + fireInvoice.operator);
     var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
 
-    getOperator.on('value', (snapshot)=>{
+    getOperator.on('value', (snapshot: any)=>{
       var operator = snapshot.val();
       //firwt we validate if we are updating or creating a new inovice
       if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
         this.logger.log('info', 'invoice modification');
       }else{
         this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact)
-          .then((nextNumber)=>{
+          .then((nextNumber: any)=>{
             this.logger.log('info', 'siguiente numero de factura para ' + operator.colppyId + ' es ' + util.inspect(nextNumber));
             //now we build the rest of the petitition
             var date = new Date(fireInvoice.invoiceDate);
             var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth()  + '-' + date.getFullYear();
             var request = this.getInvoiceRequest(fireInvoice, operator, invoiceDateTxt, nextNumber);
             this.makeHttpPost(this.endpoint, request)
-              .then((response)=>{
+              .then((response: any)=>{
                 //revaldiate that the invoice is new
                 var updateoperator = this.db.ref('accounting/invoices/' + fireInvoice.key + '/colppyId');
                 var invoiceId = response['data'].response.idfactura;
                 updateoperator.set(invoiceId);
                 //once the invoice is set, we configure the mailer and send the mail
                 //to get the user mail we need to retrrive the user
-                getClient.on('value', (clientSnapshot)=>{
+                getClient.on('value', (clientSnapshot: any)=>{
                   var client = clientSnapshot.val();
                   client.key = clientSnapshot.key;
                   var mailRequest = this.getMailRequest(operator.colppyId, client.colppyId, client.email, operator.comercialName );
                   this.makeHttpPost(this.endpoint, mailRequest)
-                    .then((response)=>{
+                    .then((response: any)=>{
                       //once we get the mail response we call the last endpoint to send the mail
                       var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' + 
                                     'idEmpresa=' + operator.colppyId + 
@@ -61,12 +61,12 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                                     '&correo=yes';
                       this.makeHttpGet(request);
                     })
-                    .catch((error)=>{
+                    .catch((error: any)=>{
                       this.logger.log('error', error);
                     });
                 });            
               })
-              .catch((error)=>{
+              .catch((error: any)=>{
                 this.logger.log('error', error);
               });
 
@@ -80,7 +80,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     //first we initialize
   }
 
-  public getMailRequest(idEmpresa, idCliente, mailCliente, nombreEmpresa){
+  public getMailRequest(idEmpresa: any, idCliente: any, mailCliente: string, nombreEmpresa: string){
     return {
       "auth": this.auth,
       "service": {
@@ -109,7 +109,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} invoiceDate [description]
    * @param {[type]} factNumber  [description]
    */
-  public getInvoiceRequest(fireInvoice, operator, invoiceDate, factNumber){
+  public getInvoiceRequest(fireInvoice: any, operator: any, invoiceDate: any, factNumber: any){
     return {
       "auth": this.auth,
       "service": {
@@ -147,7 +147,6 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         "orderId": "",
         "itemsFactura": [{
           "idItem": operator.colppyThirdCode,
-          "minimo": null,
           "tipoItem": "S",
           "codigo": "000001",
           "Descripcion": "pagos a terceros",
@@ -166,7 +165,6 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         },
         {
           "idItem": operator.colppyOwnCode,
-          "minimo": null,
           "tipoItem": "S",
           "codigo": "000002",
           "Descripcion": "Cobro agencia",

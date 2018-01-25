@@ -4,7 +4,7 @@ export interface IFireBizService{
 
   inProgress: string;
 
-  createBizObject(param);
+  createBizObject(param: any): any;
   
 
 }

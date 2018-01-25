@@ -5,10 +5,10 @@ export class FireListener {
 
   private route: string;
   private service: IFireBizService;
-  private db;
+  private db: any;
   private initialized: boolean = false;
 
-  constructor(route:string, db, service:IFireBizService){
+  constructor(route:string, db: any, service:IFireBizService){
     this.route =  route;
     this.db = db;
     this.service = service;
@@ -19,7 +19,7 @@ export class FireListener {
     var ref = this.db.ref(this.route);
     var count = 0;
     //we create the listener for a change
-    ref.on('child_changed', (snapshot) => {
+    ref.on('child_changed', (snapshot: any) => {
       if(this.initialized){
         var param = snapshot.val();
         param.key = snapshot.key;
@@ -29,7 +29,7 @@ export class FireListener {
     });
 
     //the the listener for a new element
-    ref.on('child_added', (snapshot) => {
+    ref.on('child_added', (snapshot: any) => {
       count++;
       if(this.initialized){
         var param = snapshot.val();
@@ -39,7 +39,7 @@ export class FireListener {
       }
     });
     
-    ref.once('child_added', (snapshot) => {
+    ref.once('child_added', (snapshot: any) => {
       console.log('Se inicializo el listener ' + this.route + ' con ' + count + ' registros');
       this.initialized = true;
       if( count === 1){

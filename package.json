@@ -4,7 +4,7 @@
   "description": "Server side to process interconnection betwen trotalo and third party systems",
   "main": "index.js",
   "scripts": {
-    "start": "./node_modules/.bin/tsc --module commonjs --outDir dist/ --noImplicitAny --sourceMap src/server.ts && node dist/server.js",
+    "start": "./node_modules/.bin/tsc && node dist/server.js",
     "debug": "tsc && nodemon --inspect-brk dist\\server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,6 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "@firebase/app-types": "0.1.1",
+    "@types/dateformat": "1.0.1",
+    "@types/winston": "2.3.7",
     "axios": "0.17.1",
     "express": "^4.16.2",
     "firebase-admin": "5.8.1",
@@ -21,6 +23,7 @@
     "winston": "2.4.0"
   },
   "devDependencies": {
+    "@types/es6-promise": "3.3.0",
     "nodemon": "1.14.11"
   }
 }
