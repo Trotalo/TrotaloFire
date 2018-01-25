@@ -45,7 +45,12 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                 var updateoperator = this.db.ref('accounting/invoices/' + fireInvoice.key + '/colppyId');
                 var invoiceId = response['data'].response.idfactura;
                 updateoperator.set(invoiceId);
+                //tambien setamos el codigo dian de la factura
+                updateoperator = this.db.ref('accounting/invoices/' + fireInvoice.key + '/factId');
+                updateoperator.set(nextNumber.prefix + '-' + nextNumber.number);
+
                 this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
+                
                 //once the invoice is set, we configure the mailer and send the mail
                 //to get the user mail we need to retrrive the user
                 getClient.on('value', (clientSnapshot: any)=>{
