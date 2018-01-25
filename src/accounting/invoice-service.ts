@@ -21,7 +21,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
 
 
   createBizObject(fireInvoice: any){
-    console.log('call From InvoiceService' + fireInvoice);
+    this.logger.log('info', 'solictud de factura nueva para: ', fireInvoice.operator);
     this.openSession();
     var getOperator = this.db.ref('operators/' + fireInvoice.operator);
     var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
@@ -34,7 +34,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
       }else{
         this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact)
           .then((nextNumber: any)=>{
-            this.logger.log('info', 'siguiente numero de factura para ' + operator.colppyId + ' es ' + util.inspect(nextNumber));
+            this.logger.log('info', 'Numero de factura para empresa: ' + operator.colppyId + ' es ' + util.inspect(nextNumber));
             //now we build the rest of the petitition
             var date = new Date(fireInvoice.invoiceDate);
             var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth()  + '-' + date.getFullYear();
@@ -45,6 +45,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                 var updateoperator = this.db.ref('accounting/invoices/' + fireInvoice.key + '/colppyId');
                 var invoiceId = response['data'].response.idfactura;
                 updateoperator.set(invoiceId);
+                this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
                 //once the invoice is set, we configure the mailer and send the mail
                 //to get the user mail we need to retrrive the user
                 getClient.on('value', (clientSnapshot: any)=>{
@@ -53,6 +54,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                   var mailRequest = this.getMailRequest(operator.colppyId, client.colppyId, client.email, operator.comercialName );
                   this.makeHttpPost(this.endpoint, mailRequest)
                     .then((response: any)=>{
+                      this.logger.log('info', 'Formato de correo seteado para evio a: ' , client.email);
                       //once we get the mail response we call the last endpoint to send the mail
                       var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' + 
                                     'idEmpresa=' + operator.colppyId + 
@@ -60,6 +62,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                                     '&idFactura=' + invoiceId + 
                                     '&correo=yes';
                       this.makeHttpGet(request);
+                      this.logger.log('info', 'Factura de ' +  operator.comercialName  + ' enviada a ' + client.email);
                     })
                     .catch((error: any)=>{
                       this.logger.log('error', error);
