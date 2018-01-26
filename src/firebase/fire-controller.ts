@@ -9,7 +9,10 @@ export class FireController{
 
   private listeners: FireListener[] = [];
 
-  private serviceAccount = 'src/res/TrotaloProd-853421c005ab.json';
+  //development
+  //private serviceAccount = 'src/res/TrotaloProd-853421c005ab.json';
+  //prod
+  private serviceAccount = 'src/res/trotalococulta-firebase-adminsdk-j5gfb-9fd7e71287.json';
 
   private logger = new (winston.Logger)({
     transports: [
@@ -23,6 +26,7 @@ export class FireController{
     this.initFirebaseConnection();
     this.listeners.push(new FireListener('accounting/clients', admin.database(), new NewClientService()));
     this.listeners.push(new FireListener('accounting/invoices', admin.database(), new InvoiceService()));
+    this.logger.log('info', 'Connected to: ', this.serviceAccount);
     /*this.listeners.push(new FireListener('camicase2'));
     this.listeners.push(new FireListener('camicase3'));
     this.listeners.push(new FireListener('camicase4'));*/
@@ -35,7 +39,7 @@ export class FireController{
 
     admin.initializeApp({
       credential: admin.credential.cert(this.serviceAccount),
-      databaseURL: 'https://trotaloprod.firebaseio.com'
+      databaseURL: 'https://trotalococulta.firebaseio.com'
     });
   }
 

@@ -40,10 +40,10 @@ class Server{
         setInterval(()=>{
             axios.get(this.herokuEnpodint)
                 .then((response)=>{
-                    this.logger.log('debug', 'ping response arrived!');
+                    this.logger.log('info', 'ping response arrived!', response.data);
                 });
 
-        }, 3000000);
+        }, 300000);
     }
 }
 

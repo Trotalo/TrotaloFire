@@ -56,7 +56,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                 getClient.on('value', (clientSnapshot: any)=>{
                   var client = clientSnapshot.val();
                   client.key = clientSnapshot.key;
-                  var mailRequest = this.getMailRequest(operator.colppyId, client.colppyId, client.email, operator.comercialName );
+                  var mailRequest = this.getMailRequest(operator.colppyId, client.colppyId, client.email + ', ' + operator.email, operator.comercialName );
                   this.makeHttpPost(this.endpoint, mailRequest)
                     .then((response: any)=>{
                       this.logger.log('info', 'Formato de correo seteado para evio a: ' , client.email);

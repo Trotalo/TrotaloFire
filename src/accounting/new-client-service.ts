@@ -20,13 +20,40 @@ export class NewClientService extends ColppyBase implements IFireBizService{
 
 
   createBizObject(fireClient: any){
-    console.log('call From service' + fireClient);
+    this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
     this.openSession();
     var getOperator = this.db.ref('operators/' + fireClient.operator);
     getOperator.on('value', (snapshot: any)=>{
       var operator = snapshot.val();
-      this.logger.log('info', 'loaded operator" ' + util.inspect(operator));
-      var clientRequest = {
+      this.logger.log('info', 'Operator retrieved' + operator.key + ' ' + operator.comercialName);
+      var clientRequest = this.getClientRequest(operator, fireClient);
+      if(fireClient.colppyId && fireClient.colppyId.length > 0){
+        this.logger.log('info', 'Edition requested');
+        clientRequest.service.operacion = 'editar_cliente';
+        clientRequest.parameters.info_general.idCliente = fireClient.colppyId;
+      }
+
+      this.makeHttpPost(this.endpoint, clientRequest)
+        .then((response: any)=>{
+          this.logger.log('info', 'Client transaciotion finished ');
+          if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
+            var updateoperator = this.db.ref('accounting/clients/' + fireClient.key + '/colppyId');
+            updateoperator.set(response['data'].response.data.idCliente);
+          }
+        })
+        .catch((error: any)=>{
+          this.logger.log('error', error);
+        });
+
+
+    });
+
+    //first we retrieve the
+    //first we initialize
+  }
+
+  private getClientRequest(operator: any, fireClient: any){
+    return {
         "auth": this.auth,
         "service": {
           "provision": "Cliente",
@@ -73,28 +100,6 @@ export class NewClientService extends ColppyBase implements IFireBizService{
                   "DirEnvioPais": ""
               }
           }
-      }
-      if(fireClient.colppyId && fireClient.colppyId.length > 0){
-        clientRequest.service.operacion = 'editar_cliente';
-        clientRequest.parameters.info_general.idCliente = fireClient.colppyId;
-      }
-
-      this.makeHttpPost(this.endpoint, clientRequest)
-        .then((response: any)=>{
-          this.logger.log('info', 'Client created ' + util.inspect(response['data']));
-          if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
-            var updateoperator = this.db.ref('accounting/clients/' + fireClient.key + '/colppyId');
-            updateoperator.set(response['data'].response.data.idCliente);
-          }
-        })
-        .catch((error: any)=>{
-          this.logger.log('error', error);
-        });
-
-
-    });
-
-    //first we retrieve the
-    //first we initialize
+      }  
   }
 }

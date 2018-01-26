@@ -7,7 +7,7 @@ export class ColppyBase{
   protected currentKey: string = '';
   protected loginTime: number = -1;
   protected endpoint: string = 'http://login.colppy.com/lib/frontera2/service.php';
-  protected colppyUsr: string = 'gato.climber@gmail.com';
+  protected colppyUsr: string = 'contabilidad@colombiaoculta.org';
   protected colppyPassw: string = '18a8875833adddc536589743c708f964';
 
   protected logger = new (winston.Logger)({
