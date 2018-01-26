@@ -3,6 +3,8 @@ import * as admin from 'firebase-admin';
 import { NewClientService } from '../accounting/new-client-service';
 import { InvoiceService } from '../accounting/invoice-service';
 
+import { Enviroment } from '../enviroment/enviroment';
+
 import * as  winston from 'winston';
 
 export class FireController{
@@ -13,13 +15,13 @@ export class FireController{
   //private serviceAccount = 'src/res/TrotaloProd-853421c005ab.json';
 
   //prod
-  private serviceAccount = 'src/res/trotalococulta-firebase-adminsdk-j5gfb-9fd7e71287.json';
+  private serviceAccount = Enviroment.SYS_CONFIG.serviceAccount;
   
   //development
   //private url: string = 'https://trotaloprod.firebaseio.com';
   
   //prod
-  private url: string = 'https://trotalococulta.firebaseio.com';
+  private url: string = Enviroment.SYS_CONFIG.fbUrl;
   
 
   private logger = new (winston.Logger)({

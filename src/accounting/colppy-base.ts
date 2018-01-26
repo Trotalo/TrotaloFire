@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as  winston from 'winston';
+import { Enviroment } from '../enviroment/enviroment';
 
 
 export class ColppyBase{
@@ -7,9 +8,9 @@ export class ColppyBase{
   protected currentKey: string = '';
   protected loginTime: number = -1;
   protected endpoint: string = 'http://login.colppy.com/lib/frontera2/service.php';
-  protected colppyUsr: string = 'contabilidad@colombiaoculta.org';
+  protected colppyUsr: string = Enviroment.SYS_CONFIG.colppyUsr;
   //protected colppyUsr: string = 'gato.climber@gmail.com';
-  protected colppyPassw: string = '18a8875833adddc536589743c708f964';
+  protected colppyPassw: string = Enviroment.SYS_CONFIG.colppyPassw;
 
   protected logger = new (winston.Logger)({
     transports: [

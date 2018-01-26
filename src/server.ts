@@ -2,12 +2,13 @@ import { FireController } from './firebase/fire-controller'
 import * as express from 'express';
 import axios from 'axios';
 import * as  winston from 'winston';
+import { Enviroment } from './enviroment/enviroment'
 
 class Server{
 
     private value:string;
     private fireController: FireController;
-    private herokuEnpodint: string = 'https://boiling-ocean-33652.herokuapp.com/';
+    private herokuEnpodint: string = Enviroment.SYS_CONFIG.herokuEnpodint;
 
     protected logger = new (winston.Logger)({
         transports: [
@@ -37,13 +38,13 @@ class Server{
         });
 
         //finally we set a pinger to keep service online
-        setInterval(()=>{
+        /*setInterval(()=>{
             axios.get(this.herokuEnpodint)
                 .then((response)=>{
                     this.logger.log('info', 'ping response arrived!', response.data);
                 });
 
-        }, 300000);
+        }, 300000);*/
     }
 }
 

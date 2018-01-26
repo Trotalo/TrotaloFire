@@ -37,6 +37,9 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
             this.logger.log('info', 'Numero de factura para empresa: ' + operator.colppyId + ' es ' + util.inspect(nextNumber));
             //now we build the rest of the petitition
             var date = new Date(fireInvoice.invoiceDate);
+            let limitDate = new Date(fireInvoice.invoiceDate);
+            limitDate.setDate(limitDate.getDate() + 15);
+
             var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth()  + '-' + date.getFullYear();
             var request = this.getInvoiceRequest(fireInvoice, operator, invoiceDateTxt, nextNumber);
             this.makeHttpPost(this.endpoint, request)
