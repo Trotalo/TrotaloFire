@@ -11,8 +11,16 @@ export class FireController{
 
   //development
   //private serviceAccount = 'src/res/TrotaloProd-853421c005ab.json';
+
   //prod
   private serviceAccount = 'src/res/trotalococulta-firebase-adminsdk-j5gfb-9fd7e71287.json';
+  
+  //development
+  //private url: string = 'https://trotaloprod.firebaseio.com';
+  
+  //prod
+  private url: string = 'https://trotalococulta.firebaseio.com';
+  
 
   private logger = new (winston.Logger)({
     transports: [
@@ -39,7 +47,8 @@ export class FireController{
 
     admin.initializeApp({
       credential: admin.credential.cert(this.serviceAccount),
-      databaseURL: 'https://trotalococulta.firebaseio.com'
+      //databaseURL: 'https://trotalococulta.firebaseio.com'
+      databaseURL: this.url
     });
   }
 

@@ -118,7 +118,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} factNumber  [description]
    */
   public getInvoiceRequest(fireInvoice: any, operator: any, invoiceDate: any, factNumber: any){
-    return {
+    let returnValue =  {
       "auth": this.auth,
       "service": {
         "provision": "FacturaVenta",
@@ -153,7 +153,30 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         "percepcionIVA": 0,
         "idTipoRetencion": "",
         "orderId": "",
-        "itemsFactura": [{
+        "itemsFactura": [],
+        "totalFactura": fireInvoice.total,
+        "totalIVA": fireInvoice.taxes,
+        "valorCambio": "1",
+        "nroRepeticion": "1",
+        "periodoRep": "1",
+        "nroVencimiento": "",
+        "tipoVencimiento": "1",
+        "fechaFin": "",
+        "nroRemito1": "",
+        "nroRemito2": "",
+        "totalesiva": [],
+        "totalCREE": 0,
+        "nroResolucion": '' + operator.colppyResfact,
+        "retencionICA": 0,
+        "retsufridas": [],
+        "reteIVA": 0
+      }
+    }
+
+    //validamos si tiene o no algun cobro para evitar enviar el item
+    if(fireInvoice.thirdParty && fireInvoice.thirdParty != 0
+        && fireInvoice.agency && fireInvoice.agency != 0){
+      returnValue.parameters.itemsFactura = [{
           "idItem": operator.colppyThirdCode,
           "tipoItem": "S",
           "codigo": "000001",
@@ -188,30 +211,57 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
           "idPlanCuenta": "417040 ENTRETENIMIENTO Y ESPARCIMIENTO",
           "Comentario": "Cobro agencia",
           "editable": false
-        }],
-        "totalFactura": fireInvoice.total,
-        "totalIVA": fireInvoice.taxes,
-        "valorCambio": "1",
-        "nroRepeticion": "1",
-        "periodoRep": "1",
-        "nroVencimiento": "",
-        "tipoVencimiento": "1",
-        "fechaFin": "",
-        "nroRemito1": "",
-        "nroRemito2": "",
-        "totalesiva": [
-        {
+        }];
+    }else //debemos validar si existe uno o el otro
+      if(!fireInvoice.thirdParty || fireInvoice.thirdParty == 0){
+        returnValue.parameters.itemsFactura = [{
+          "idItem": operator.colppyOwnCode,
+          "tipoItem": "S",
+          "codigo": "000002",
+          "Descripcion": "Cobro agencia",
+          "ccosto1": "",
+          "ccosto2": "",
+          "almacen": "",
+          "unidadMedida": "v",
+          "Cantidad": 1,
+          "ImporteUnitario": fireInvoice.agency,
+          "porcDesc": "0",
+          "IVA": "19",
+          "subtotal": fireInvoice.agency,
+          "idPlanCuenta": "417040 ENTRETENIMIENTO Y ESPARCIMIENTO",
+          "Comentario": "Cobro agencia",
+          "editable": false
+        }];
+      } else
+        if(!fireInvoice.agency || fireInvoice.agency == 0){
+          returnValue.parameters.itemsFactura = [{
+          "idItem": operator.colppyThirdCode,
+          "tipoItem": "S",
+          "codigo": "000001",
+          "Descripcion": "pagos a terceros",
+          "ccosto1": "",
+          "ccosto2": "",
+          "almacen": "",
+          "unidadMedida": "v",
+          "Cantidad": 1,
+          "ImporteUnitario": fireInvoice.thirdParty,
+          "porcDesc": "0",
+          "IVA": "0",
+          "subtotal": fireInvoice.thirdParty,
+          "idPlanCuenta": "281505 VALORES RECIBIDOS PARA TERCEROS",
+          "Comentario": "pagos a terceros",
+          "editable": false
+        }];
+        }
+    if(fireInvoice.taxes && fireInvoice.taxes != 0){
+      returnValue.parameters.totalesiva = [{
           "alicuotaIva": "19",
           "importeIva": fireInvoice.taxes,
           "baseImpIva": fireInvoice.agency
-        }],
-        "totalCREE": 0,
-        "nroResolucion": '' + operator.colppyResfact,
-        "retencionICA": 0,
-        "retsufridas": [],
-        "reteIVA": 0
-      }
+        }]
     }
+
+    return returnValue;
 
   }
 }
