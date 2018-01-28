@@ -23,7 +23,7 @@ export class FireListener {
       if(this.initialized){
         var param = snapshot.val();
         param.key = snapshot.key;
-        console.log('child_added' + util.inspect(param) );  
+        //console.log('child_added' + util.inspect(param) );  
         this.service.createBizObject(param);
       }
     });
@@ -34,7 +34,7 @@ export class FireListener {
       if(this.initialized){
         var param = snapshot.val();
         param.key = snapshot.key;
-        console.log('child_added' + util.inspect(param) );
+        //console.log('child_added' + util.inspect(param) );
         this.service.createBizObject(param);
       }
     });

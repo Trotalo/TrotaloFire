@@ -40,8 +40,9 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
             let limitDate = new Date(fireInvoice.invoiceDate);
             limitDate.setDate(limitDate.getDate() + 15);
 
-            var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth()  + '-' + date.getFullYear();
-            var request = this.getInvoiceRequest(fireInvoice, operator, invoiceDateTxt, nextNumber);
+            var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth() + 1  + '-' + date.getFullYear();
+            var limitDateTxt = '' + limitDate.getDate() + '-' + (limitDate.getMonth() + 1)  + '-' + limitDate.getFullYear();
+            var request = this.getInvoiceRequest(fireInvoice, operator, invoiceDateTxt, limitDateTxt, nextNumber);
             this.makeHttpPost(this.endpoint, request)
               .then((response: any)=>{
                 //revaldiate that the invoice is new
@@ -120,7 +121,8 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} invoiceDate [description]
    * @param {[type]} factNumber  [description]
    */
-  public getInvoiceRequest(fireInvoice: any, operator: any, invoiceDate: any, factNumber: any){
+  public getInvoiceRequest(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
+    this.logger.log('info', 'Nuevo request: \nFecha:'+ invoiceDate + '\nTrama:' + util.inspect(fireInvoice))
     let returnValue =  {
       "auth": this.auth,
       "service": {
@@ -135,7 +137,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         "country_id": "45",
         "descripcion": fireInvoice.activitySold,
         "fechaFactura": invoiceDate,
-        "fechaPago": invoiceDate,
+        "fechaPago": limitDateTxt,
         "idCliente": fireInvoice.clientNameRef,
         "idCondicionPago": "Contado",
         "idEmpresa": '' + operator.colppyId,
@@ -183,7 +185,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
           "idItem": operator.colppyThirdCode,
           "tipoItem": "S",
           "codigo": "000001",
-          "Descripcion": "pagos a terceros",
+          "Descripcion": fireInvoice.activitySold,
           "ccosto1": "",
           "ccosto2": "",
           "almacen": "",
@@ -221,7 +223,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
           "idItem": operator.colppyOwnCode,
           "tipoItem": "S",
           "codigo": "000002",
-          "Descripcion": "Cobro agencia",
+          "Descripcion": fireInvoice.activitySold,
           "ccosto1": "",
           "ccosto2": "",
           "almacen": "",
@@ -241,7 +243,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
           "idItem": operator.colppyThirdCode,
           "tipoItem": "S",
           "codigo": "000001",
-          "Descripcion": "pagos a terceros",
+          "Descripcion": fireInvoice.activitySold,
           "ccosto1": "",
           "ccosto2": "",
           "almacen": "",

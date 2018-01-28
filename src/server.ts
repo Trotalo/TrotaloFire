@@ -44,7 +44,7 @@ class Server{
                     this.logger.log('info', 'ping response arrived!', response.data);
                 });
 
-        }, 300000);*/
+        }, 1500000);*/
     }
 }
 
