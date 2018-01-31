@@ -31,6 +31,53 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
       //firwt we validate if we are updating or creating a new inovice
       if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
         this.logger.log('info', 'invoice modification');
+        //first we retrieve the invoice
+        let invoiceReqQery = this.getInvoiceQuery(operator.colppyId, fireInvoice.colppyId);
+        this.makeHttpPost(this.endpoint, invoiceReqQery)
+          .then((response)=>{
+            console.log(response);
+            let infoFactura = response.data.response.infofactura;
+            boolean changed = false;
+
+            if( !factParams.getDescripcion().equalsIgnoreCase(fireInvoice.getActivitySold()) ){
+  						factParams.setDescripcion(fireInvoice.getActivitySold());
+  						changed = true;
+  					}
+  					if( !factParams.getNetoNoGravado().equalsIgnoreCase(fireInvoice.getThirdParty()) ){
+  						factParams.setNetoNoGravado(fireInvoice.getThirdParty());
+  						//and we need to uptade the item
+  						factParams.getItemsFactura().get(0).setImporteUnitario(fireInvoice.getThirdParty());
+  						factParams.setTotalFactura("" + fireInvoice.getTotal());
+  						changed = true;
+  					}
+  					if( !factParams.getNetoGravado().equalsIgnoreCase(fireInvoice.getAgency()) ){
+  						factParams.setNetoGravado(fireInvoice.getAgency());
+  						//and we need to uptade the item
+  						factParams.getItemsFactura().get(1).setImporteUnitario(fireInvoice.getAgency());
+  						factParams.setTotalIVA("" + fireInvoice.getTaxes());
+  						factParams.setTotalFactura("" + fireInvoice.getTotal());
+  						changed = true;
+  					}
+  					if(changed){
+  						CreateFacturaRequest clientRequest =  new CreateFacturaRequest();
+  						clientRequest.setAuth(auth);
+  						clientRequest.getService().setProvision("FacturaVenta");
+  						clientRequest.getService().setOperacion("editar_facturaventa");
+  						clientRequest.getParameters().setSesion(getCurrentSession());
+  						clientRequest.setParameters(factParams);
+  						RestTemplate restTemplate = new RestTemplate();
+  						HttpEntity<CreateFacturaRequest> request = new HttpEntity<>(clientRequest, createHeaders());
+
+  						ServiceResponse response = null;
+  						try {
+  							response = restTemplate.postForObject(endpoint, request, ServiceResponse.class);
+  							log.debug(response.toString());
+  						} catch (RestClientException e) {
+  							// TODO Auto-generated catch block
+  							e.printStackTrace();
+  						}
+  					}
+          })
       }else{
         this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact)
           .then((nextNumber: any)=>{
@@ -54,7 +101,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                 updateoperator.set(nextNumber.prefix + '-' + nextNumber.number);
 
                 this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
-                
+
                 //once the invoice is set, we configure the mailer and send the mail
                 //to get the user mail we need to retrrive the user
                 getClient.on('value', (clientSnapshot: any)=>{
@@ -65,10 +112,10 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                     .then((response: any)=>{
                       this.logger.log('info', 'Formato de correo seteado para evio a: ' , client.email);
                       //once we get the mail response we call the last endpoint to send the mail
-                      var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' + 
-                                    'idEmpresa=' + operator.colppyId + 
+                      var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' +
+                                    'idEmpresa=' + operator.colppyId +
                                     '&idCliente=' + fireInvoice.clientNameRef +
-                                    '&idFactura=' + invoiceId + 
+                                    '&idFactura=' + invoiceId +
                                     '&correo=yes';
                       this.makeHttpGet(request);
                       this.logger.log('info', 'Factura de ' +  operator.comercialName  + ' enviada a ' + client.email);
@@ -76,20 +123,43 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                     .catch((error: any)=>{
                       this.logger.log('error', error);
                     });
-                });            
+                });
               })
               .catch((error: any)=>{
                 this.logger.log('error', error);
               });
 
-          })  
+          })
       }
-      
+
     });
-    
+
 
     //first we retrieve the
     //first we initialize
+  }
+
+  public getInvoiceQuery(idEmpresa: any, idFactura){
+    return {
+      "auth": this.auth,
+      "service": {
+        "provision": "FacturaVenta",
+        "operacion": "leer_facturaventa"
+      },
+      "parameters": {
+        "sesion": {
+          "usuario": this.colppyUsr,
+          "claveSesion": this.currentKey
+        },
+        "idEmpresa": idEmpresa,
+        "idFactura": idFactura,
+        "idElemento": "8",
+        "sort": "FTimeStamp",
+        "dir": "desc",
+        "start": "0",
+        "limit": "50"
+      }
+    }
   }
 
   public getMailRequest(idEmpresa: any, idCliente: any, mailCliente: string, nombreEmpresa: string){
