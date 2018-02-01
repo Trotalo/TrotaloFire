@@ -39,7 +39,7 @@ export class FireListener {
             delete this.inProgress[liberatedKey];
           })
           .catch(error=>{
-            delete this.inProgress[liberatedKey];
+            //delete this.inProgress[liberatedKey];
           });
       }
     });

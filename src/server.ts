@@ -20,7 +20,7 @@ class Server{
     constructor(){
         this.value = 'testing!';
         this.fireController = new FireController();
-    }        
+    }
 
     public start(){
         this.fireController.initListeners();
