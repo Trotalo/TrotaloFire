@@ -1,5 +1,6 @@
 import { IFireBizService } from '../interfaces/i-fire-biz-service';
 import * as util from 'util';
+import * as  winston from 'winston';
 
 export class FireListener {
 
@@ -7,6 +8,14 @@ export class FireListener {
   private service: IFireBizService;
   private db: any;
   private initialized: boolean = false;
+  private inProgress: any = {};
+
+  protected logger = new (winston.Logger)({
+    transports: [
+    new (winston.transports.Console)(),
+    //new (winston.transports.File)({ filename: 'colppyTrx.log' })
+    ]
+  });
 
   constructor(route:string, db: any, service:IFireBizService){
     this.route =  route;
@@ -20,11 +29,18 @@ export class FireListener {
     var count = 0;
     //we create the listener for a change
     ref.on('child_changed', (snapshot: any) => {
-      if(this.initialized){
+      if(this.initialized && !this.inProgress[snapshot.key]){
         var param = snapshot.val();
         param.key = snapshot.key;
-        //console.log('child_added' + util.inspect(param) );  
-        this.service.createBizObject(param);
+        this.inProgress[param.key] = true;
+        //console.log('child_added' + util.inspect(param) );
+        this.service.createBizObject(param)
+          .then((liberatedKey)=>{
+            delete this.inProgress[liberatedKey];
+          })
+          .catch(error=>{
+            delete this.inProgress[liberatedKey];
+          });
       }
     });
 
@@ -34,31 +50,34 @@ export class FireListener {
       if(this.initialized){
         var param = snapshot.val();
         param.key = snapshot.key;
+        this.inProgress[param.key] = true;
         //console.log('child_added' + util.inspect(param) );
-        this.service.createBizObject(param);
+        this.service.createBizObject(param)
+          .then((liberatedKey)=>{
+            delete this.inProgress[liberatedKey];
+          });
       }
     });
-    
+
     ref.once('child_added', (snapshot: any) => {
       console.log('Se inicializo el listener ' + this.route + ' con ' + count + ' registros');
       this.initialized = true;
       if( count === 1){
         var param = snapshot.val();
         param.key = snapshot.key;
-        this.service.createBizObject(param); 
+        this.service.createBizObject(param);
       }
       //this.service.createBizObject(param);
     });
   }
 
-  
 
 
 
-  
 
 
 
-  
+
+
+
 }
-

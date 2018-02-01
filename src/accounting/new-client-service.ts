@@ -20,36 +20,35 @@ export class NewClientService extends ColppyBase implements IFireBizService{
 
 
   createBizObject(fireClient: any){
-    this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
-    this.openSession();
-    var getOperator = this.db.ref('operators/' + fireClient.operator);
-    getOperator.on('value', (snapshot: any)=>{
-      var operator = snapshot.val();
-      this.logger.log('info', 'Operator retrieved' + operator.key + ' ' + operator.comercialName);
-      var clientRequest = this.getClientRequest(operator, fireClient);
-      if(fireClient.colppyId && fireClient.colppyId.length > 0){
-        this.logger.log('info', 'Edition requested');
-        clientRequest.service.operacion = 'editar_cliente';
-        clientRequest.parameters.info_general.idCliente = fireClient.colppyId;
-      }
+    return new Promise((resolve: any, reject: any) =>{
+      this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
+      this.openSession();
+      var getOperator = this.db.ref('operators/' + fireClient.operator);
+      getOperator.on('value', (snapshot: any)=>{
+        var operator = snapshot.val();
+        this.logger.log('info', 'Operator retrieved' + operator.key + ' ' + operator.comercialName);
+        var clientRequest = this.getClientRequest(operator, fireClient);
+        if(fireClient.colppyId && fireClient.colppyId.length > 0){
+          this.logger.log('info', 'Edition requested');
+          clientRequest.service.operacion = 'editar_cliente';
+          clientRequest.parameters.info_general.idCliente = fireClient.colppyId;
+        }
 
-      this.makeHttpPost(this.endpoint, clientRequest)
-        .then((response: any)=>{
-          this.logger.log('info', 'Client transaciotion finished ');
-          if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
-            var updateoperator = this.db.ref('accounting/clients/' + fireClient.key + '/colppyId');
-            updateoperator.set(response['data'].response.data.idCliente);
-          }
-        })
-        .catch((error: any)=>{
-          this.logger.log('error', error);
-        });
-
-
+        this.makeHttpPost(this.endpoint, clientRequest)
+          .then((response: any)=>{
+            this.logger.log('info', 'Client transaction finished ');
+            if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
+              var updateoperator = this.db.ref('accounting/clients/' + fireClient.key + '/colppyId');
+              updateoperator.set(response['data'].response.data.idCliente);
+              resolve(fireClient.key);
+            }
+          })
+          .catch((error: any)=>{
+            this.logger.log('error', error);
+            reject(fireClient.key);
+          });
+      });
     });
-
-    //first we retrieve the
-    //first we initialize
   }
 
   private getClientRequest(operator: any, fireClient: any){
@@ -100,6 +99,6 @@ export class NewClientService extends ColppyBase implements IFireBizService{
                   "DirEnvioPais": ""
               }
           }
-      }  
+      }
   }
 }
