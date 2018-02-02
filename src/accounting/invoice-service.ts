@@ -21,122 +21,90 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
 
 
   public createBizObject(fireInvoice: any){
-    return new Promise((resolve: any, reject: any) =>{
-      this.openSession();
-      var getOperator = this.db.ref('operators/' + fireInvoice.operator);
-      var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
-
-      getOperator.on('value', (snapshot: any)=>{
-        var operator = snapshot.val();
-        //firwt we validate if we are updating or creating a new inovice
+    this.openSession();
+    let operation: number;
+    let operator: any;
+    var getOperator = this.db.ref('operators/' + fireInvoice.operator);
+    getOperator.once('value')
+      .then((snapshot)=>{
+        operator = snapshot.val();
         if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
+          operation = 1;
           this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
           //first we retrieve the invoice
-          let invoiceReqQery = this.getInvoiceQuery(operator.colppyId, fireInvoice.colppyId);
-          this.makeHttpPost(this.endpoint, invoiceReqQery)
-            .then((response)=>{
-              let infoFactura = response['data'].response.infofactura;
-              this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-' + infoFactura.nroFactura2);
+          let invoiceReqQery = this.getInvoiceMsg(operator.colppyId, fireInvoice.colppyId);
+          return this.makeHttpPost(this.endpoint, invoiceReqQery);
+        }else{
+          operation = 0;
+          return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact);
+        }
+      })
+      .then((response)=>{
+        let nextNumber: any;
+        let send = false;
+        if(operation === 0){//nueva operacion
+          nextNumber = response;
+          return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);  
+        }else{
+          let infoFactura = response['data'].response.infofactura;
+              this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-' 
+                                        + infoFactura.nroFactura2);
               let changed: boolean = false;
               //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
               if(infoFactura.descripcion.toUpperCase() !== fireInvoice.activitySold.toUpperCase()
                   || infoFactura.netoNoGravado.toUpperCase() !== fireInvoice.thirdParty.toUpperCase()
                   || infoFactura.netoGravado.toUpperCase() !== fireInvoice.agency.toUpperCase()
                 ){
-                  this.logger.log('info', 'Se aplicaran cambios en: ', infoFactura.nroFactura1 + '-' + infoFactura.nroFactura2);
-                  //if the invoice has changed we create a new request and send it
-                  var date = new Date(fireInvoice.invoiceDate);
-                  let limitDate = new Date(fireInvoice.invoiceDate);
-                  limitDate.setDate(limitDate.getDate() + 15);
-
-                  var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth() + 1  + '-' + date.getFullYear();
-                  var limitDateTxt = '' + limitDate.getDate() + '-' + (limitDate.getMonth() + 1)  + '-' + limitDate.getFullYear();
-                  let factNumber = {
-                    "prefix": infoFactura.nroFactura1,
-                    "number": infoFactura.nroFactura2,
-                  };
-                  /*"nroFactura1": factNumber.prefix,
-                  "nroFactura2": factNumber.number,*/
-                  var request = this.updateInvoiceRequest(fireInvoice, operator, invoiceDateTxt, limitDateTxt, factNumber);
-                  request.service = {
-                    "provision": "FacturaVenta",
-                    "operacion": "editar_facturaventa"
-                  };
-                  this.makeHttpPost(this.endpoint, request)
-                    .then((response)=>{
-                      console.log(response['data'].response);
-                      resolve(fireInvoice.key);
-                    })
+                nextNumber = {
+                  "prefix": infoFactura.nroFactura1,
+                  "number": infoFactura.nroFactura2,
+                };
+                return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);  
               }
-
-            })
-        }else{
-          this.logger.log('info', 'solictud de factura nueva para: ', fireInvoice.operator);
-          this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact)
-            .then((nextNumber: any)=>{
-              this.logger.log('info', 'Numero de factura para empresa: ' + operator.colppyId + ' es ' + util.inspect(nextNumber));
-              //now we build the rest of the petitition
-              var date = new Date(fireInvoice.invoiceDate);
-              let limitDate = new Date(fireInvoice.invoiceDate);
-              limitDate.setDate(limitDate.getDate() + 15);
-
-              var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth() + 1  + '-' + date.getFullYear();
-              var limitDateTxt = '' + limitDate.getDate() + '-' + (limitDate.getMonth() + 1)  + '-' + limitDate.getFullYear();
-              var request = this.getInvoiceRequest(fireInvoice, operator, invoiceDateTxt, limitDateTxt, nextNumber);
-              this.makeHttpPost(this.endpoint, request)
-                .then((response: any)=>{
-                  //revaldiate that the invoice is new
-                  var updateoperator = this.db.ref('accounting/invoices/' + fireInvoice.key + '/colppyId');
-                  var invoiceId = response['data'].response.idfactura;
-                  updateoperator.set(invoiceId);
-                  //tambien setamos el codigo dian de la factura
-                  updateoperator = this.db.ref('accounting/invoices/' + fireInvoice.key + '/factId');
-                  updateoperator.set(nextNumber.prefix + '-' + nextNumber.number);
-
-                  this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
-
-                  //once the invoice is set, we configure the mailer and send the mail
-                  //to get the user mail we need to retrrive the user
-                  getClient.on('value', (clientSnapshot: any)=>{
-                    var client = clientSnapshot.val();
-                    client.key = clientSnapshot.key;
-                    var mailRequest = this.getMailRequest(operator.colppyId, client.colppyId, client.email + ', ' + operator.email, operator.comercialName );
-                    this.makeHttpPost(this.endpoint, mailRequest)
-                      .then((response: any)=>{
-                        this.logger.log('info', 'Formato de correo seteado para evio a: ' , client.email);
-                        //once we get the mail response we call the last endpoint to send the mail
-                        var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' +
-                                      'idEmpresa=' + operator.colppyId +
-                                      '&idCliente=' + fireInvoice.clientNameRef +
-                                      '&idFactura=' + invoiceId +
-                                      '&correo=yes';
-                        this.makeHttpGet(request);
-                        this.logger.log('info', 'Factura de ' +  operator.comercialName  + ' enviada a ' + client.email);
-                        resolve(fireInvoice.key);
-                      })
-                      .catch((error: any)=>{
-                        this.logger.log('error', error);
-                      });
-                  });
-                })
-                .catch((error: any)=>{
-                  this.logger.log('error', error);
-                });
-
-            })
         }
-
+        
+      })//finally we send the email
+      .then((response)=>{
+        console.log(response);
       });
-    });
-
-
-
-
-    //first we retrieve the
-    //first we initialize
   }
 
-  public getInvoiceQuery(idEmpresa: any, idFactura){
+  private sendInvoiceMsg =(fireInvoice, operator, factNumber, msgGenerator)=>{
+    var date = new Date(fireInvoice.invoiceDate);
+    let limitDate = new Date(fireInvoice.invoiceDate);
+    limitDate.setDate(limitDate.getDate() + 15);
+
+    var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth() + 1  + '-' + date.getFullYear();
+    var limitDateTxt = '' + limitDate.getDate() + '-' + (limitDate.getMonth() + 1)  + '-' + limitDate.getFullYear();
+    /*"nroFactura1": factNumber.prefix,
+    "nroFactura2": factNumber.number,*/
+    var request = msgGenerator(fireInvoice, operator, invoiceDateTxt, limitDateTxt, factNumber);
+    this.makeHttpPost(this.endpoint, request)
+  };
+
+  private sendInvoiceEmail = (fireInvoice, operator, invoiceId)=>{
+    var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
+    getClient.once('value')
+      .then((clientSnapshot: any)=>{
+        var client = clientSnapshot.val();
+        client.key = clientSnapshot.key;
+        var mailRequest = this.setInvoiceMailMsg(operator.colppyId, client.colppyId, client.email + ', ' + operator.email, operator.comercialName );
+        this.logger.log('info', 'Formato de correo enviado para: ' , client.colppyId, client.email + ', ' + operator.email);
+        return this.makeHttpPost(this.endpoint, mailRequest);
+      })
+      .then((response: any)=>{
+        //once we get the mail response we call the last endpoint to send the mail
+        var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' +
+                      'idEmpresa=' + operator.colppyId +
+                      '&idCliente=' + fireInvoice.clientNameRef +
+                      '&idFactura=' + invoiceId +
+                      '&correo=yes';
+        this.makeHttpGet(request);
+        this.logger.log('info', 'Factura envida para ' +  operator.comercialName  );
+      })
+  }
+
+  public getInvoiceMsg(idEmpresa: any, idFactura){
     return {
       "auth": this.auth,
       "service": {
@@ -159,7 +127,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     }
   }
 
-  public getMailRequest(idEmpresa: any, idCliente: any, mailCliente: string, nombreEmpresa: string){
+  public setInvoiceMailMsg(idEmpresa: any, idCliente: any, mailCliente: string, nombreEmpresa: string){
     return {
       "auth": this.auth,
       "service": {
@@ -188,7 +156,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} invoiceDate [description]
    * @param {[type]} factNumber  [description]
    */
-  public getInvoiceRequest(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
+  public newInvoiceMsg(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
     this.logger.log('info', 'Nuevo request: \nFecha:'+ invoiceDate + '\nTrama:' + util.inspect(fireInvoice))
     let returnValue =  {
       "auth": this.auth,
@@ -244,7 +212,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         "reteIVA": 0
       }
     }
-    returnValue.parameters.itemsFactura = this.getItemsFactura(fireInvoice, operator);
+    returnValue.parameters.itemsFactura = this.getItemsFacturaMsgPrt(fireInvoice, operator);
 
     if(fireInvoice.taxes && fireInvoice.taxes != 0){
       returnValue.parameters.totalesiva = [{
@@ -263,7 +231,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} invoiceDate [description]
    * @param {[type]} factNumber  [description]
    */
-  public updateInvoiceRequest(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
+  public updateInvoiceMsg(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
     this.logger.log('info', 'Update request: \nFecha:'+ invoiceDate + '\nTrama:' + util.inspect(fireInvoice))
     let returnValue =  {
       "auth": this.auth,
@@ -277,39 +245,39 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
           "claveSesion": this.currentKey
         },
         "country_id": "45",
-    		"IVA105": "",
-    		"IVA21": "",
-    		"IVA27": "",
-    		"descripcion": fireInvoice.activitySold,
-    		"fechaFactura": invoiceDate,
-    		"fechaPago": limitDateTxt,
-    		"idCliente": fireInvoice.clientNameRef,
-    		"idCondicionPago": "Contado",
-    		"idEmpresa": '' + operator.colppyId,
-    		"idEstadoAnterior": "Aprobada",
-    		"idEstadoFactura": "Aprobada",
-    		"idFactura": fireInvoice.colppyId,
-    		"idMoneda": "1",
-    		"idTipoComprobante": "4",
-    		"idTipoFactura": "A",
-    		"idUsuario": this.colppyUsr,
-    		"labelfe": "",
-    		"netoGravado": fireInvoice.agency,
-    		"netoNoGravado": fireInvoice.thirdParty,
+        "IVA105": "",
+        "IVA21": "",
+        "IVA27": "",
+        "descripcion": fireInvoice.activitySold,
+        "fechaFactura": invoiceDate,
+        "fechaPago": limitDateTxt,
+        "idCliente": fireInvoice.clientNameRef,
+        "idCondicionPago": "Contado",
+        "idEmpresa": '' + operator.colppyId,
+        "idEstadoAnterior": "Aprobada",
+        "idEstadoFactura": "Aprobada",
+        "idFactura": fireInvoice.colppyId,
+        "idMoneda": "1",
+        "idTipoComprobante": "4",
+        "idTipoFactura": "A",
+        "idUsuario": this.colppyUsr,
+        "labelfe": "",
+        "netoGravado": fireInvoice.agency,
+        "netoNoGravado": fireInvoice.thirdParty,
         "nroFactura1": factNumber.prefix,
         "nroFactura2": factNumber.number,
-    		"percepcionIIBB": "0.00",
-    		"IIBBLocal": "CABA",
-    		"percepcionIVA": 0,
-    		"idTipoRetencion": "0",
-    		"orderId": "0",
+        "percepcionIIBB": "0.00",
+        "IIBBLocal": "CABA",
+        "percepcionIVA": 0,
+        "idTipoRetencion": "0",
+        "orderId": "0",
         "totalFactura": fireInvoice.total,
         "totalIVA": fireInvoice.taxes,
         "nroResolucion": '' + operator.colppyResfact,
       }
     }
 
-    returnValue.parameters['itemsFactura'] = this.getItemsFactura(fireInvoice, operator);
+    returnValue.parameters['itemsFactura'] = this.getItemsFacturaMsgPrt(fireInvoice, operator);
 
     if(fireInvoice.taxes && fireInvoice.taxes != 0){
       returnValue.parameters['totalesiva'] = [{
@@ -321,7 +289,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     return returnValue;
   }
 
-  private getItemsFactura(fireInvoice, operator){
+  private getItemsFacturaMsgPrt(fireInvoice, operator){
     //validamos si tiene o no algun cobro para evitar enviar el item
     let returnValue: any;
     if(fireInvoice.thirdParty && fireInvoice.thirdParty != 0

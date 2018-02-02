@@ -53,9 +53,9 @@ export class FireListener {
         this.inProgress[param.key] = true;
         //console.log('child_added' + util.inspect(param) );
         this.service.createBizObject(param)
-          .then((liberatedKey)=>{
+          /*.then((liberatedKey)=>{
             delete this.inProgress[liberatedKey];
-          });
+          });*/
       }
     });
 
