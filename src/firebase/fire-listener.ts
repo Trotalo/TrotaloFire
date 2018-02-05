@@ -56,6 +56,10 @@ export class FireListener {
         this.service.createBizObject(param)
           .then((liberatedKey)=>{
             delete this.inProgress[liberatedKey];
+          })
+          .catch(key=>{
+            this.logger.log('error', 'failed to process ', util.inspect(param))
+            delete this.inProgress[key];
           });
       }
     });
@@ -71,6 +75,10 @@ export class FireListener {
         this.service.createBizObject(param)
           .then((liberatedKey)=>{
             delete this.inProgress[liberatedKey];
+          })
+          .catch(key=>{
+            this.logger.log('error', 'failed to process ', util.inspect(param))
+            delete this.inProgress[key];
           });
       }
     });

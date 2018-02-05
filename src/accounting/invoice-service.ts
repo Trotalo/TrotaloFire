@@ -27,6 +27,11 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
       let operation: number;
       let operator: any;
       var getOperator = this.db.ref('operators/' + fireInvoice.operator);
+      //we check that we have a client id
+      if(fireInvoice.clientNameRef.match(/[a-z]/i)){
+         this.logger.log('error', 'El cliente ', fireInvoice.clientName, ' no posee un codigo de colppy');
+         reject(fireInvoice.key);
+      }
       getOperator.once('value')
         .then((snapshot)=>{
           operator = snapshot.val();
@@ -125,8 +130,16 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         .then((clientSnapshot: any)=>{
           var client = clientSnapshot.val();
           client.key = clientSnapshot.key;
-          let mails = (client.email === operator.email) ? operator.email : (this.orEmpty(client.email) + this.orEmpty(operator.email)).substr(1);
-          
+          let mails: string = '';
+          if(fireInvoice.sendMail){
+            mails = (client.email === operator.email) ? operator.email : (this.orEmpty(client.email) + this.orEmpty(operator.email)).substr(1);
+          }else{
+            mails = operator.email;
+          }
+          if(!client.colppyId){
+            this.logger.log('error', 'El cliente ', client.name, ' no posee un codigo de colppy');
+            reject(fireInvoice.key);
+          }
           var mailRequest = this.setInvoiceMailMsg(operator.colppyId, client.colppyId, mails, operator.comercialName );
           this.logger.log('info', 'Formato de correo enviado para: ' , client.colppyId, mails);
           return this.makeHttpPost(this.endpoint, mailRequest);
