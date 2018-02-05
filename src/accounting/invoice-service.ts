@@ -21,90 +21,133 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
 
 
   public createBizObject(fireInvoice: any){
-    this.openSession();
-    let operation: number;
-    let operator: any;
-    var getOperator = this.db.ref('operators/' + fireInvoice.operator);
-    getOperator.once('value')
-      .then((snapshot)=>{
-        operator = snapshot.val();
-        if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
-          operation = 1;
-          this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
-          //first we retrieve the invoice
-          let invoiceReqQery = this.getInvoiceMsg(operator.colppyId, fireInvoice.colppyId);
-          return this.makeHttpPost(this.endpoint, invoiceReqQery);
-        }else{
-          operation = 0;
-          return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact);
-        }
-      })
-      .then((response)=>{
-        let nextNumber: any;
-        let send = false;
-        if(operation === 0){//nueva operacion
-          nextNumber = response;
-          return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);  
-        }else{
-          let infoFactura = response['data'].response.infofactura;
-              this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-' 
-                                        + infoFactura.nroFactura2);
-              let changed: boolean = false;
-              //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
-              if(infoFactura.descripcion.toUpperCase() !== fireInvoice.activitySold.toUpperCase()
-                  || infoFactura.netoNoGravado.toUpperCase() !== fireInvoice.thirdParty.toUpperCase()
-                  || infoFactura.netoGravado.toUpperCase() !== fireInvoice.agency.toUpperCase()
-                ){
-                nextNumber = {
-                  "prefix": infoFactura.nroFactura1,
-                  "number": infoFactura.nroFactura2,
-                };
-                return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);  
-              }
-        }
-        
-      })//finally we send the email
-      .then((response)=>{
-        console.log(response);
-      });
+
+    return new Promise((resolve: any, reject: any)=>{
+      this.openSession();
+      let operation: number;
+      let operator: any;
+      var getOperator = this.db.ref('operators/' + fireInvoice.operator);
+      getOperator.once('value')
+        .then((snapshot)=>{
+          operator = snapshot.val();
+          if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
+            operation = 1;
+            this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
+            //first we retrieve the invoice
+            let invoiceReqQery = this.getInvoiceMsg(operator.colppyId, fireInvoice.colppyId);
+            return this.makeHttpPost(this.endpoint, invoiceReqQery);
+          }else{
+            operation = 0;
+            return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact);
+          }
+        })
+        .then((response)=>{
+          let nextNumber: any;
+          let send = false;
+          if(operation === 0){//nueva operacion
+            nextNumber = response;
+            return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);  
+          }else{
+            let infoFactura = response['data'].response.infofactura;
+                this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-' 
+                                          + infoFactura.nroFactura2);
+                let changed: boolean = false;
+                //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
+                if(infoFactura.descripcion.toUpperCase() !== fireInvoice.activitySold.toUpperCase()
+                    || infoFactura.netoNoGravado.toUpperCase() !== fireInvoice.thirdParty.toUpperCase()
+                    || infoFactura.netoGravado.toUpperCase() !== fireInvoice.agency.toUpperCase()
+                  ){
+                  nextNumber = {
+                    "prefix": infoFactura.nroFactura1,
+                    "number": infoFactura.nroFactura2,
+                  };
+                  return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);  
+                }
+          }
+          
+        })//Here we update the object or register a log
+        .then((response)=>{
+          if(operation === 0){
+            let dataToUpdate = {};
+            let fbRef = this.db.ref();
+
+            var invoiceId = response['data'].response.idfactura;
+            dataToUpdate['accounting/invoices/' + fireInvoice.key + '/colppyId'] = invoiceId;
+            dataToUpdate['accounting/invoices/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
+            fireInvoice.colppyId = invoiceId;
+            this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
+            return fbRef.update(dataToUpdate);
+          }else{
+            this.logger.log('info', 'Se actualizo factura: ' , fireInvoice.factId);
+          }
+          
+        })
+        .then((response)=>{
+          this.logger.log('info', 'Finalized transaction for ' , fireInvoice.key);
+          return this.sendInvoiceEmail(fireInvoice, operator, fireInvoice.colppyId);
+        })
+        .then((response)=>{
+          resolve(fireInvoice.key);
+        })
+        .catch((error)=>{
+            this.logger.log('error', error);
+            reject(fireInvoice.key)
+        });
+    });
   }
 
-  private sendInvoiceMsg =(fireInvoice, operator, factNumber, msgGenerator)=>{
+  private orEmpty(entity){
+    return ',' + entity || "";
+  }
+
+  private sendInvoiceMsg = (fireInvoice, operator, factNumber, msgGenerator)=>{
     var date = new Date(fireInvoice.invoiceDate);
     let limitDate = new Date(fireInvoice.invoiceDate);
     limitDate.setDate(limitDate.getDate() + 15);
 
-    var invoiceDateTxt = '' + date.getDate() + '-' + date.getMonth() + 1  + '-' + date.getFullYear();
+    var invoiceDateTxt = '' + date.getDate() + '-' + (date.getMonth() + 1)  + '-' + date.getFullYear();
     var limitDateTxt = '' + limitDate.getDate() + '-' + (limitDate.getMonth() + 1)  + '-' + limitDate.getFullYear();
     /*"nroFactura1": factNumber.prefix,
     "nroFactura2": factNumber.number,*/
     var request = msgGenerator(fireInvoice, operator, invoiceDateTxt, limitDateTxt, factNumber);
-    this.makeHttpPost(this.endpoint, request)
+    return this.makeHttpPost(this.endpoint, request);
   };
 
+  /**
+   * Method to send and invoice registered in colppy
+   * @type {[type]}
+   */
   private sendInvoiceEmail = (fireInvoice, operator, invoiceId)=>{
-    var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
-    getClient.once('value')
-      .then((clientSnapshot: any)=>{
-        var client = clientSnapshot.val();
-        client.key = clientSnapshot.key;
-        var mailRequest = this.setInvoiceMailMsg(operator.colppyId, client.colppyId, client.email + ', ' + operator.email, operator.comercialName );
-        this.logger.log('info', 'Formato de correo enviado para: ' , client.colppyId, client.email + ', ' + operator.email);
-        return this.makeHttpPost(this.endpoint, mailRequest);
-      })
-      .then((response: any)=>{
-        //once we get the mail response we call the last endpoint to send the mail
-        var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' +
-                      'idEmpresa=' + operator.colppyId +
-                      '&idCliente=' + fireInvoice.clientNameRef +
-                      '&idFactura=' + invoiceId +
-                      '&correo=yes';
-        this.makeHttpGet(request);
-        this.logger.log('info', 'Factura envida para ' +  operator.comercialName  );
-      })
+
+    return new Promise((resolve: any, reject: any)=>{
+      var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
+      getClient.once('value')
+        .then((clientSnapshot: any)=>{
+          var client = clientSnapshot.val();
+          client.key = clientSnapshot.key;
+          let mails = (client.email === operator.email) ? operator.email : (this.orEmpty(client.email) + this.orEmpty(operator.email)).substr(1);
+          
+          var mailRequest = this.setInvoiceMailMsg(operator.colppyId, client.colppyId, mails, operator.comercialName );
+          this.logger.log('info', 'Formato de correo enviado para: ' , client.colppyId, mails);
+          return this.makeHttpPost(this.endpoint, mailRequest);
+        })
+        .then((response: any)=>{
+          //once we get the mail response we call the last endpoint to send the mail
+          var request = 'https://login.colppy.com/resources/php/fe/FE_ImprimirEnviarFactura.php?' +
+                        'idEmpresa=' + operator.colppyId +
+                        '&idCliente=' + fireInvoice.clientNameRef +
+                        '&idFactura=' + fireInvoice.colppyId +
+                        '&correo=yes';
+          return this.makeHttpGet(request);
+        })
+        .then((response)=>{
+          this.logger.log('info', 'Factura envida para ' +  operator.comercialName  );
+          resolve();
+        });
+    });
   }
 
-  public getInvoiceMsg(idEmpresa: any, idFactura){
+  public getInvoiceMsg = (idEmpresa: any, idFactura)=>{
     return {
       "auth": this.auth,
       "service": {
@@ -127,7 +170,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     }
   }
 
-  public setInvoiceMailMsg(idEmpresa: any, idCliente: any, mailCliente: string, nombreEmpresa: string){
+  public setInvoiceMailMsg = (idEmpresa: any, idCliente: any, mailCliente: string, nombreEmpresa: string)=>{
     return {
       "auth": this.auth,
       "service": {
@@ -139,10 +182,13 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
           "usuario": this.colppyUsr,
           "claveSesion": this.currentKey
         },
-        "idEmpresa": idEmpresa,
-        "idCliente": idCliente,
+        "idEmpresa": '' + idEmpresa,
+        "idCliente": '' + idCliente,
         "asunto": "Adjuntamos su $datos[\"tipoComprobante\"] Nro: $datos[\"nroFactura\"]",
-        "mensaje": "<p>Estimado cliente $datos[\"razonSocialCliente\"]:</p><p>Le informamos que hemos emitido la $datos[\"tipoComprobante\"] $datos[\"letra\"] Nro. $datos[\"nroFactura\"] por el valor de $ $datos[\"totalFactura\"]. La misma está adjunta al presente correo en formato PDF.</p><p></p><p></p>",
+        "mensaje": `<p>Estimado cliente $datos[\"razonSocialCliente\"]:</p>
+          <p>Le informamos que hemos emitido la $datos[\"tipoComprobante\"] $datos[\"letra\"] Nro. $datos[\"nroFactura\"] 
+          por el valor de $ $datos[\"totalFactura\"]. 
+          La misma está adjunta al presente correo en formato PDF.</p><p></p><p></p>`,
         "destinatarios": mailCliente,
         "nombre_sender": nombreEmpresa
       }
@@ -156,7 +202,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} invoiceDate [description]
    * @param {[type]} factNumber  [description]
    */
-  public newInvoiceMsg(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
+  public newInvoiceMsg = (fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any)=>{
     this.logger.log('info', 'Nuevo request: \nFecha:'+ invoiceDate + '\nTrama:' + util.inspect(fireInvoice))
     let returnValue =  {
       "auth": this.auth,
@@ -231,7 +277,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
    * @param {[type]} invoiceDate [description]
    * @param {[type]} factNumber  [description]
    */
-  public updateInvoiceMsg(fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any){
+  public updateInvoiceMsg = (fireInvoice: any, operator: any, invoiceDate: string, limitDateTxt: string, factNumber: any)=>{
     this.logger.log('info', 'Update request: \nFecha:'+ invoiceDate + '\nTrama:' + util.inspect(fireInvoice))
     let returnValue =  {
       "auth": this.auth,
@@ -289,7 +335,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     return returnValue;
   }
 
-  private getItemsFacturaMsgPrt(fireInvoice, operator){
+  private getItemsFacturaMsgPrt = (fireInvoice, operator)=>{
     //validamos si tiene o no algun cobro para evitar enviar el item
     let returnValue: any;
     if(fireInvoice.thirdParty && fireInvoice.thirdParty != 0

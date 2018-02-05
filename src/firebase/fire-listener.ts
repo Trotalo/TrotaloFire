@@ -38,8 +38,9 @@ export class FireListener {
           .then((liberatedKey)=>{
             delete this.inProgress[liberatedKey];
           })
-          .catch(error=>{
-            //delete this.inProgress[liberatedKey];
+          .catch(key=>{
+            this.logger.log('error', 'failed to process ', util.inspect(param))
+            delete this.inProgress[key];
           });
       }
     });
@@ -53,21 +54,25 @@ export class FireListener {
         this.inProgress[param.key] = true;
         //console.log('child_added' + util.inspect(param) );
         this.service.createBizObject(param)
-          /*.then((liberatedKey)=>{
+          .then((liberatedKey)=>{
             delete this.inProgress[liberatedKey];
-          });*/
+          });
       }
     });
 
+    //TODO still pending to solve a bug related to a double call when the systems starts and there's just one element
     ref.once('child_added', (snapshot: any) => {
       console.log('Se inicializo el listener ' + this.route + ' con ' + count + ' registros');
       this.initialized = true;
       if( count === 1){
         var param = snapshot.val();
         param.key = snapshot.key;
-        this.service.createBizObject(param);
+        this.inProgress[param.key] = true;
+        this.service.createBizObject(param)
+          .then((liberatedKey)=>{
+            delete this.inProgress[liberatedKey];
+          });
       }
-      //this.service.createBizObject(param);
     });
   }
 
