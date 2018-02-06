@@ -60,7 +60,7 @@ export class ColppyBase{
    * @param {[type]} payload the payload to send as a post
    */
   public makeHttpPost(url:string, payload: any){
-    return new Promise(function (resolve: any, reject: any) {
+    return new Promise((resolve: any, reject: any)=> {
       //setTimeout(() => resolve(), N);
       axios.post(url, payload)
       .then((response: any)=>{
