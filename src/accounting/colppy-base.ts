@@ -85,8 +85,8 @@ export class ColppyBase{
             // Something happened in setting up the request that triggered an Error
             this.logger.log('error', error.message);
           }
-          this.logger.log('error', error.config);
-          reject(error);
+        this.logger.log('error', error.config);
+        reject(error);
         });
     });
   }
