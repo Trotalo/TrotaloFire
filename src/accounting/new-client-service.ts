@@ -77,7 +77,7 @@ export class NewClientService extends ColppyBase implements IFireBizService{
                   "DirPostalCiudad": "",
                   "DirPostalCodigoPostal": "",
                   "DirPostalProvincia": "",
-                  "DirPostalPais": fireClient.nationality,
+                  "DirPostalPais": (fireClient.nationality && fireClient.nationality.length >= 14) ? fireClient.nationality.substring(0, 14) : fireClient.nationality,
                   "Telefono": "",
                   "Email": fireClient.email
               },
