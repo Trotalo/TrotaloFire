@@ -5,7 +5,7 @@ export class Enviroment{
   private static prod = false;
 
   private static development = {
-    colppyUsr: 'gato.climber@gmail.com',
+    colppyUsr: 'trotalo.beta@trotalo.com',
     colppyPassw: '18a8875833adddc536589743c708f964',
     herokuEnpodint: 'https://boiling-ocean-33652.herokuapp.com/',
     serviceAccount: 'src/res/TrotaloProd-853421c005ab.json',
