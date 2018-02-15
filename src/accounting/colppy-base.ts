@@ -1,9 +1,14 @@
 import axios from 'axios';
 import * as  winston from 'winston';
+
+import * as admin from 'firebase-admin';
+
 import { Enviroment } from '../enviroment/enviroment';
 
 
 export class ColppyBase{
+
+  protected db = admin.database()
 
   protected currentKey: string = '';
   protected loginTime: number = -1;
@@ -156,5 +161,21 @@ export class ColppyBase{
 
       
     });  
+  }
+
+  protected recordError(route, error, trxdate, creator, source){
+    this.logger.log('error', error);
+    //debemos marcar el registro como deshabilitado y crear el 
+    //informe de error
+    let fbRef = this.db.ref(route);
+    fbRef.set(true);
+    //he insertamos un registro en el log de errores
+    const afList = this.db.ref('errors/' + creator);
+    let errorToSave = {
+      'error': error,
+      'date': trxdate.getTime(),
+      'operation': source,
+    }
+    afList.push().set(errorToSave);
   }
 }

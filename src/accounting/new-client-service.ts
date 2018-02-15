@@ -10,7 +10,7 @@ export class NewClientService extends ColppyBase implements IFireBizService{
 
   inProgress: string;
 
-  private db = admin.database()
+  //private db = admin.database()
 
   constructor(){
     super();
@@ -23,6 +23,7 @@ export class NewClientService extends ColppyBase implements IFireBizService{
     return new Promise((resolve: any, reject: any) =>{
       this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
       this.openSession();
+      let trxdate = new Date();
       var getOperator = this.db.ref('operators/' + fireClient.operator);
       getOperator.once('value')
         .then((snapshot: any)=>{
@@ -46,6 +47,11 @@ export class NewClientService extends ColppyBase implements IFireBizService{
         })
         .catch((error: any)=>{
           this.logger.log('error', error);
+          this.recordError('accounting/clients/' + fireClient.key + '/disabled', 
+                         error, 
+                         trxdate,
+                         fireClient.creator,
+                         'Cientes');
           reject(fireClient.key);
         });
       });
