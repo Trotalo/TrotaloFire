@@ -38,13 +38,13 @@ class Server{
         });
 
         //finally we set a pinger to keep service online
-        /*setInterval(()=>{
+        setInterval(()=>{
             axios.get(this.herokuEnpodint)
                 .then((response)=>{
                     this.logger.log('info', 'ping response arrived!', response.data);
                 });
 
-        }, 1500000);*/
+        }, 1500000);
     }
 }
 
