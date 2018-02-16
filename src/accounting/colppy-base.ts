@@ -71,6 +71,9 @@ export class ColppyBase{
       .then((response: any)=>{
         if(response['data'].response.success === false){
           reject(response['data'].response.message);
+        }else if(!response['data'].response){
+          this.logger.log('error', 'La respuesta del serivor esta incompleta', response);
+          reject(response);
         }else{
           resolve(response);  
         }

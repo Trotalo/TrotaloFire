@@ -23,6 +23,11 @@ class Server{
     }
 
     public start(){
+        //we define a gloabla error handler
+        process.on('uncaughtException', function(err) {
+            // handle the error safely
+            console.log(err)
+        })
         this.fireController.initListeners();
     }
 
