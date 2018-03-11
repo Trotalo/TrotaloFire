@@ -23,7 +23,6 @@ export class FireListener {
     this.service = service;
   }
 
-  //TODO generar un mapa para evitar reproceso de elementos editados
   public initListener(){
     var ref = this.db.ref(this.route);
     var count = 0;

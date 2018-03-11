@@ -16,13 +16,13 @@ export class FireController{
 
   //prod
   private serviceAccount = Enviroment.SYS_CONFIG.serviceAccount;
-  
+
   //development
   //private url: string = 'https://trotaloprod.firebaseio.com';
-  
+
   //prod
   private url: string = Enviroment.SYS_CONFIG.fbUrl;
-  
+
 
   private logger = new (winston.Logger)({
     transports: [
@@ -36,20 +36,19 @@ export class FireController{
     this.initFirebaseConnection();
     this.listeners.push(new FireListener('accounting/clients', admin.database(), new NewClientService()));
     this.listeners.push(new FireListener('accounting/invoices', admin.database(), new InvoiceService()));
-    this.logger.log('info', 'Connected to: ', this.serviceAccount);
+    //this.logger.log('info', 'Connected to: ', this.serviceAccount);
     /*this.listeners.push(new FireListener('camicase2'));
     this.listeners.push(new FireListener('camicase3'));
     this.listeners.push(new FireListener('camicase4'));*/
 
-    
+
   }
 
   private initFirebaseConnection(){
-    this.logger.log('info', 'Starting firebase connection!');
+    this.logger.log('info', 'Starting firebase connection!', this.serviceAccount, this.url);
 
     admin.initializeApp({
       credential: admin.credential.cert(this.serviceAccount),
-      //databaseURL: 'https://trotalococulta.firebaseio.com'
       databaseURL: this.url
     });
   }
@@ -59,5 +58,5 @@ export class FireController{
       currentValue.initListener();
     })
   }
-  
+
 }
