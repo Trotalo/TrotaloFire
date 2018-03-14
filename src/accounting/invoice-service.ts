@@ -40,6 +40,9 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         getOperator.once('value')
           .then((snapshot)=>{
             operator = snapshot.val();
+            //redondeamos el impuesto
+            fireInvoice.taxes = Math.round( fireInvoice.taxes );
+            fireInvoice.total = Math.round( fireInvoice.total );
             if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
               operation = 1;
               this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
@@ -357,6 +360,8 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     }
     return returnValue;
   }
+
+  private 
 
   private getItemsFacturaMsgPrt = (fireInvoice, operator)=>{
     //validamos si tiene o no algun cobro para evitar enviar el item
