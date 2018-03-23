@@ -27,36 +27,43 @@ export class ColppyBase{
   //private axiosConnector = new AxiosInstance.();
 
   protected auth = {
-    /*usuario: 'camilo.casadiego@gmail.com',
-    password: '9636e4dc1f56adee52835c377b0b6d55'*/
-    usuario: 'ColppyAPI',
-    password: '9410c05b7bfadea3ab7b573180862222'
+    usuario: 'camilo.casadiego@gmail.com',
+    password: '9636e4dc1f56adee52835c377b0b6d55'
+    /*usuario: 'ColppyAPI',
+    password: '9410c05b7bfadea3ab7b573180862222'*/
   }
 
 
   public openSession(){
-    if(Date.now() - this.loginTime > 1800000 ){
-      let loginRequest = {
-        'auth': this.auth,
-        'service': {
-          'provision':'Usuario',
-          'operacion':'iniciar_sesion'
-        },
-        'parameters': {
-          'usuario': this.colppyUsr,
-          'password': this.colppyPassw
+    return new Promise((resolve: any, reject: any)=> {
+      if(Date.now() - this.loginTime > 1800000 ){
+        let loginRequest = {
+          'auth': this.auth,
+          'service': {
+            'provision':'Usuario',
+            'operacion':'iniciar_sesion'
+          },
+          'parameters': {
+            'usuario': this.colppyUsr,
+            'password': this.colppyPassw
+          }
         }
+        this.makeHttpPost(this.endpoint, loginRequest)
+        .then((response: any)=>{
+          this.currentKey = response['data'].response.data.claveSesion;
+          this.loginTime = Date.now();
+          this.logger.log('info', 'connection started with id ' + this.currentKey);
+          resolve();
+        })
+        .catch((error: any)=>{
+          this.logger.log('error', error);
+          reject();
+        });
+      }else{
+        resolve();
       }
-      this.makeHttpPost(this.endpoint, loginRequest)
-      .then((response: any)=>{
-        this.currentKey = response['data'].response.data.claveSesion;
-        this.loginTime = Date.now();
-        this.logger.log('info', 'connection started with id ' + this.currentKey);
-      })
-      .catch((error: any)=>{
-        this.logger.log('error', error);
-      });
-    }
+    });
+    
   }
 
   /**
@@ -70,7 +77,7 @@ export class ColppyBase{
       axios.post(url, payload)
       .then((response: any)=>{
         if(!response['data'].response || !response['data']){
-          this.logger.log('error', 'La respuesta del serivor esta incompleta', response);
+          this.logger.log('error', 'La respuesta del serivor esta incompleta', response['data'].result.mensaje);
           reject(response);
         }else
           if(response['data'].response.success === false){

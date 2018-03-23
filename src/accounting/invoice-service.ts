@@ -16,14 +16,12 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
   constructor(){
     super();
     console.log('InvoiceService started');
-    this.openSession();
   }
 
 
   public createBizObject(fireInvoice: any){
 
     return new Promise((resolve: any, reject: any)=>{
-      this.openSession();
       let operation: number;
       let operator: any;
       let trxdate =  new Date();
@@ -37,7 +35,11 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                          fireInvoice.creator, 'Facturacion');
          reject(fireInvoice.key);
       }else{
-        getOperator.once('value')
+
+        this.openSession()
+          .then((res)=>{
+            return getOperator.once('value');
+          })
           .then((snapshot)=>{
             operator = snapshot.val();
             //redondeamos el impuesto

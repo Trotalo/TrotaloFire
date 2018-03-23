@@ -15,17 +15,18 @@ export class NewClientService extends ColppyBase implements IFireBizService{
   constructor(){
     super();
     console.log('NewClientService started');
-    this.openSession();
   }
 
 
   createBizObject(fireClient: any){
     return new Promise((resolve: any, reject: any) =>{
       this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
-      this.openSession();
       let trxdate = new Date();
       var getOperator = this.db.ref('operators/' + fireClient.operator);
-      getOperator.once('value')
+      this.openSession()
+        .then(()=>{
+          return getOperator.once('value');
+        })
         .then((snapshot: any)=>{
           var operator = snapshot.val();
           this.logger.log('info', 'Operator retrieved' + operator.key + ' ' + operator.comercialName);
