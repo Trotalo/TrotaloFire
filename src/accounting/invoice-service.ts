@@ -29,8 +29,8 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
       //we check that we have a client id
       if(fireInvoice.clientNameRef.match(/[a-z]/i)){
          this.logger.log('error', 'El cliente ', fireInvoice.clientName, ' no posee un codigo de colppy');
-         this.recordError('accounting/invoices/' + fireInvoice.key + '/disabled', 
-                         'El cliente '  + fireInvoice.clientName + ' no posee un codigo de colppy', 
+         this.recordError('accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/disabled',
+                         'El cliente '  + fireInvoice.clientName + ' no posee un codigo de colppy',
                          trxdate,
                          fireInvoice.creator, 'Facturacion');
          reject(fireInvoice.key);
@@ -61,10 +61,10 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
             let send = false;
             if(operation === 0){//nueva operacion
               nextNumber = response;
-              return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);  
+              return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);
             }else{
               let infoFactura = response['data'].response.infofactura;
-                  this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-' 
+                  this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-'
                                             + infoFactura.nroFactura2);
                   let changed: boolean = false;
                   //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
@@ -76,10 +76,10 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
                       "prefix": infoFactura.nroFactura1,
                       "number": infoFactura.nroFactura2,
                     };
-                    return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);  
+                    return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);
                   }
             }
-            
+
           })//Here we update the object or register a log
           .then((response)=>{
             if(operation === 0){
@@ -87,15 +87,15 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
               let fbRef = this.db.ref();
 
               var invoiceId = response['data'].response.idfactura;
-              dataToUpdate['accounting/invoices/' + fireInvoice.key + '/colppyId'] = invoiceId;
-              dataToUpdate['accounting/invoices/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
+              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/colppyId'] = invoiceId;
+              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
               fireInvoice.colppyId = invoiceId;
               this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
               return fbRef.update(dataToUpdate);
             }else{
               this.logger.log('info', 'Se actualizo factura: ' , fireInvoice.factId);
             }
-            
+
           })
           .then((response)=>{
             this.logger.log('info', 'Finalized transaction for ' , fireInvoice.key);
@@ -105,8 +105,8 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
             resolve(fireInvoice.key);
           })
           .catch((error)=>{
-              this.recordError('accounting/invoices/' + fireInvoice.key + '/disabled', 
-                         error, 
+              this.recordError('accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/disabled',
+                         error,
                          trxdate,
                          fireInvoice.creator,
                          'Facturacion');
@@ -140,7 +140,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
   private sendInvoiceEmail = (fireInvoice, operator, invoiceId)=>{
 
     return new Promise((resolve: any, reject: any)=>{
-      var getClient = this.db.ref('accounting/clients/' + fireInvoice.clientNameOrig);
+      var getClient = this.db.ref('accounting/clients/' + fireInvoice.operator + '/' + fireInvoice.clientNameOrig);
       getClient.once('value')
         .then((clientSnapshot: any)=>{
           var client = clientSnapshot.val();
@@ -214,8 +214,8 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
         "idCliente": '' + idCliente,
         "asunto": "Adjuntamos su $datos[\"tipoComprobante\"] Nro: $datos[\"nroFactura\"]",
         "mensaje": `<p>Estimado cliente $datos[\"razonSocialCliente\"]:</p>
-          <p>Le informamos que hemos emitido la $datos[\"tipoComprobante\"] $datos[\"letra\"] Nro. $datos[\"nroFactura\"] 
-          por el valor de $ $datos[\"totalFactura\"]. 
+          <p>Le informamos que hemos emitido la $datos[\"tipoComprobante\"] $datos[\"letra\"] Nro. $datos[\"nroFactura\"]
+          por el valor de $ $datos[\"totalFactura\"].
           La misma está adjunta al presente correo en formato PDF.</p><p></p><p></p>`,
         "destinatarios": mailCliente,
         "nombre_sender": nombreEmpresa
@@ -363,7 +363,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
     return returnValue;
   }
 
-  private 
+  private
 
   private getItemsFacturaMsgPrt = (fireInvoice, operator)=>{
     //validamos si tiene o no algun cobro para evitar enviar el item

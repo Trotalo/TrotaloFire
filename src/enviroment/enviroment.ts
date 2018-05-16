@@ -8,8 +8,8 @@ export class Enviroment{
     colppyUsr: 'suesca@trotalo.com',
     colppyPassw: '18a8875833adddc536589743c708f964',
     herokuEnpodint: 'https://boiling-ocean-33652.herokuapp.com/',
-    serviceAccount: 'src/res/TrotaloProd-853421c005ab.json',
-    fbUrl: 'https://trotaloprod.firebaseio.com'
+    serviceAccount: 'src/res/trotalodev-c281e-firebase-adminsdk-gsl5l-4f9786bd91.json',
+    fbUrl: 'https://trotalodev-c281e.firebaseio.com'
   };
 
   private static production = {
@@ -21,7 +21,7 @@ export class Enviroment{
   };
 
   //public static SYS_CONFIG = (Enviroment.prod? Enviroment.production : Enviroment.development);
-  public static SYS_CONFIG = Enviroment.production;
+  public static SYS_CONFIG = Enviroment.development;
 
 
 }

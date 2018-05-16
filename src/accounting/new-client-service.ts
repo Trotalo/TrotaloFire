@@ -41,23 +41,23 @@ export class NewClientService extends ColppyBase implements IFireBizService{
         .then((response: any)=>{
           this.logger.log('info', 'Client transaction finished ');
           if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
-            var updateoperator = this.db.ref('accounting/clients/' + fireClient.key + '/colppyId');
+            var updateoperator = this.db.ref('accounting/clients/' + fireClient.operator + '/' + fireClient.key + '/colppyId');
             updateoperator.set(response['data'].response.data.idCliente);
             resolve(fireClient.key);
           }
         })
         .catch((error: any)=>{
           this.logger.log('error', error);
-          this.recordError('accounting/clients/' + fireClient.key + '/disabled', 
-                         error, 
+          this.recordError('accounting/clients/' + fireClient.operator + '/' + fireClient.key + '/disabled',
+                         error,
                          trxdate,
                          fireClient.creator,
                          'Cientes');
           reject(fireClient.key);
         });
       });
-      
-    
+
+
   }
 
   private getClientRequest(operator: any, fireClient: any){

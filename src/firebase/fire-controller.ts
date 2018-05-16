@@ -1,6 +1,9 @@
 import { FireListener } from './fire-listener';
+import { IFireListener } from '../interfaces/i-fire-listener';
+import { ComposedListener } from './composed-listener';
 import * as admin from 'firebase-admin';
 import { NewClientService } from '../accounting/new-client-service';
+import { NewProviderService } from '../accounting/new-provider-service';
 import { InvoiceService } from '../accounting/invoice-service';
 
 import { Enviroment } from '../enviroment/enviroment';
@@ -9,7 +12,7 @@ import * as  winston from 'winston';
 
 export class FireController{
 
-  private listeners: FireListener[] = [];
+  private listeners: IFireListener[] = [];
 
   //development
   //private serviceAccount = 'src/res/TrotaloProd-853421c005ab.json';
@@ -34,8 +37,13 @@ export class FireController{
   constructor(){
     //first we initialize the
     this.initFirebaseConnection();
-    this.listeners.push(new FireListener('accounting/clients', admin.database(), new NewClientService()));
-    this.listeners.push(new FireListener('accounting/invoices', admin.database(), new InvoiceService()));
+    /*this.listeners.push(new FireListener('accounting/clients', admin.database(), new NewClientService()));
+    this.listeners.push(new FireListener('accounting/invoices', admin.database(), new InvoiceService()));*/
+
+    this.listeners.push(new ComposedListener('accounting/clients', admin.database(), NewClientService));
+    this.listeners.push(new ComposedListener('accounting/providers', admin.database(), NewProviderService));
+    this.listeners.push(new ComposedListener('accounting/invoices', admin.database(), InvoiceService));
+
     //this.logger.log('info', 'Connected to: ', this.serviceAccount);
     /*this.listeners.push(new FireListener('camicase2'));
     this.listeners.push(new FireListener('camicase3'));

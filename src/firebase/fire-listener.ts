@@ -1,10 +1,11 @@
 import { IFireBizService } from '../interfaces/i-fire-biz-service';
+import { IFireListener } from '../interfaces/i-fire-listener';
 import * as util from 'util';
 import * as  winston from 'winston';
 
-export class FireListener {
+export class FireListener implements IFireListener{
 
-  private route: string;
+  public route: string;
   private service: IFireBizService;
   private db: any;
   private initialized: boolean = false;
@@ -70,15 +71,18 @@ export class FireListener {
       if( count === 1){
         var param = snapshot.val();
         param.key = snapshot.key;
-        this.inProgress[param.key] = true;
-        this.service.createBizObject(param)
-          .then((liberatedKey)=>{
-            delete this.inProgress[liberatedKey];
-          })
-          .catch(key=>{
-            this.logger.log('error', 'failed to process ', util.inspect(param))
-            delete this.inProgress[key];
-          });
+        if(!param.colppyId){
+          this.inProgress[param.key] = true;
+          this.service.createBizObject(param)
+            .then((liberatedKey)=>{
+              delete this.inProgress[liberatedKey];
+            })
+            .catch(key=>{
+              this.logger.log('error', 'failed to process ', util.inspect(param))
+              delete this.inProgress[key];
+            });  
+        }
+        
       }
     });
   }

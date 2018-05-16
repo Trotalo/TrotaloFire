@@ -1,0 +1,8 @@
+
+
+export interface IFireListener{
+
+  initListener();
+
+
+}
