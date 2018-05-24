@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 import { NewClientService } from '../accounting/new-client-service';
 import { NewProviderService } from '../accounting/new-provider-service';
 import { InvoiceService } from '../accounting/invoice-service';
+import { NewPaymentService } from '../accounting/new-payment-service';
 
 import { Enviroment } from '../enviroment/enviroment';
 
@@ -43,6 +44,7 @@ export class FireController{
     this.listeners.push(new ComposedListener('accounting/clients', admin.database(), NewClientService));
     this.listeners.push(new ComposedListener('accounting/providers', admin.database(), NewProviderService));
     this.listeners.push(new ComposedListener('accounting/invoices', admin.database(), InvoiceService));
+    this.listeners.push(new ComposedListener('accounting/payments', admin.database(), NewPaymentService));
 
     //this.logger.log('info', 'Connected to: ', this.serviceAccount);
     /*this.listeners.push(new FireListener('camicase2'));
