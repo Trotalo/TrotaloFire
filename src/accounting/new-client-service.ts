@@ -20,41 +20,47 @@ export class NewClientService extends ColppyBase implements IFireBizService{
 
   createBizObject(fireClient: any){
     return new Promise((resolve: any, reject: any) =>{
-      this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
-      let trxdate = new Date();
-      var getOperator = this.db.ref('operators/' + fireClient.operator);
-      this.openSession()
-        .then(()=>{
-          return getOperator.once('value');
-        })
-        .then((snapshot: any)=>{
-          var operator = snapshot.val();
-          this.logger.log('info', 'Operator retrieved' + operator.key + ' ' + operator.comercialName);
-          var clientRequest = this.getClientRequest(operator, fireClient);
-          if(fireClient.colppyId && fireClient.colppyId.length > 0){
-            this.logger.log('info', 'Edition requested');
-            clientRequest.service.operacion = 'editar_cliente';
-            clientRequest.parameters.info_general.idCliente = fireClient.colppyId;
-          }
-          return this.makeHttpPost(this.endpoint, clientRequest);
-        })
-        .then((response: any)=>{
-          this.logger.log('info', 'Client transaction finished ');
-          if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
-            var updateoperator = this.db.ref('accounting/clients/' + fireClient.operator + '/' + fireClient.key + '/colppyId');
-            updateoperator.set(response['data'].response.data.idCliente);
-            resolve(fireClient.key);
-          }
-        })
-        .catch((error: any)=>{
-          this.logger.log('error', error);
-          this.recordError('accounting/clients/' + fireClient.operator + '/' + fireClient.key + '/disabled',
-                         error,
-                         trxdate,
-                         fireClient.creator,
-                         'Cientes');
-          reject(fireClient.key);
-        });
+
+      if(!fireClient.colppyId){
+        this.logger.log('info', 'Clients service called for' + fireClient.name + ' from ' + fireClient.operator);
+        let trxdate = new Date();
+        var getOperator = this.db.ref('operators/' + fireClient.operator);
+        this.openSession()
+          .then(()=>{
+            return getOperator.once('value');
+          })
+          .then((snapshot: any)=>{
+            var operator = snapshot.val();
+            this.logger.log('info', 'Operator retrieved' + operator.key + ' ' + operator.comercialName);
+            var clientRequest = this.getClientRequest(operator, fireClient);
+            if(fireClient.colppyId && fireClient.colppyId.length > 0){
+              this.logger.log('info', 'Edition requested');
+              clientRequest.service.operacion = 'editar_cliente';
+              clientRequest.parameters.info_general.idCliente = fireClient.colppyId;
+            }
+            return this.makeHttpPost(this.endpoint, clientRequest);
+          })
+          .then((response: any)=>{
+            this.logger.log('info', 'Client transaction finished ');
+            if(response['data'].response.data.idCliente && (!fireClient.colppyId || fireClient.colppyId.length == 0) ){
+              var updateoperator = this.db.ref('accounting/clients/' + fireClient.operator + '/' + fireClient.key + '/colppyId');
+              updateoperator.set(response['data'].response.data.idCliente);
+              resolve(fireClient.key);
+            }
+          })
+          .catch((error: any)=>{
+            this.logger.log('error', error);
+            this.recordError('accounting/clients/' + fireClient.operator + '/' + fireClient.key + '/disabled',
+                           error,
+                           trxdate,
+                           fireClient.creator,
+                           'Cientes');
+            reject(fireClient.key);
+          });
+        }else{
+          resolve(fireClient.key);
+        }
+      
       });
 
 

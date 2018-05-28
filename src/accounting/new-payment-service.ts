@@ -47,16 +47,16 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
       })
       .then((response: any)=>{
         this.logger.log('info', 'Payment transaction finished ');
-        if(response['data'].response.data.idCliente && (!firePayment.colppyId || firePayment.colppyId.length == 0) ){
+        if(response['data'].response.idFactura && (!firePayment.colppyId || firePayment.colppyId.length == 0) ){
           var updateoperator = this.db.ref('accounting/payments/' + firePayment.operator + '/' + firePayment.key + '/colppyId');
-          updateoperator.set(response['response'].idFactura);
+          updateoperator.set(response['data'].response.idFactura);
           resolve(firePayment.key);
         }
       })
       .catch((error: any)=>{
         this.logger.log('error', error);
         this.recordError('accounting/payments/' + firePayment.operator + '/' + firePayment.key + '/disabled',
-          error,
+          error.stack?error.stack:error,
           trxdate,
           firePayment.creator,
           'Payments');
@@ -83,8 +83,12 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
   }
 
   private getPaymentRequest(operator: any, firePayment: any, consecutive: any){
-    var date = new Date(firePayment.invoiceDate);
+    var date = new Date(firePayment.paymentDate);
     var invoiceDate = '' + date.getDate() + '-' + (date.getMonth() + 1)  + '-' + date.getFullYear();
+    var totalpago = parseFloat(firePayment.totalPago) + 
+                  parseFloat(firePayment.iva?firePayment.iva:'0') - 
+                  ( parseFloat(firePayment.reteFuente?firePayment.reteFuente:'0') + 
+                    parseFloat(firePayment.ica?firePayment.ica:'0'));
     return {
       "auth": this.auth,
       "service": {
@@ -140,7 +144,7 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
           "idPlanCuenta": "Banco 1",
           "nroCheque": "",
           "fechaValidez": "",
-          "importe": '' + firePayment.totalPago,
+          "importe": '' + totalpago,
           "idTabla": 0,
           "idElemento": 0,
           "idItem": 0,
@@ -149,9 +153,9 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
         }
         ],
         "tipoFactura": "Contado",
-        "totalFactura": "137200.00",
+        "totalFactura": totalpago,
         "totalIVA": firePayment.iva,
-        "totalpagadofactura": firePayment.totalPago + firePayment.iva - ( firePayment.reteFuente + firePayment.ica),
+        "totalpagadofactura": totalpago,
         "percsufridas": [],
         "totalesiva": [ {
           "alicuotaIva": "4",
