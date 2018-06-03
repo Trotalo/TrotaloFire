@@ -31,6 +31,7 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
       let trxdate = new Date();
       var getOperator = this.db.ref('operators/' + firePayment.operator);
       var operator = null;
+      var consecutive;
       this.openSession()
       .then(()=>{
         return getOperator.once('value');
@@ -42,14 +43,23 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
         //first we retrieve the consecutive
         return this.getPaymentId(firePayment.providerNameOrig, operator.key);
       }).then((response:any)=>{
+        consecutive = response;
         var clientRequest = this.getPaymentRequest(operator, firePayment, response);
         return this.makeHttpPost(this.endpoint, clientRequest);
       })
       .then((response: any)=>{
         this.logger.log('info', 'Payment transaction finished ');
         if(response['data'].response.idFactura && (!firePayment.colppyId || firePayment.colppyId.length == 0) ){
-          var updateoperator = this.db.ref('accounting/payments/' + firePayment.operator + '/' + firePayment.key + '/colppyId');
+          var updateoperator = this.db.ref('accounting/payments/' + firePayment.operator + '/' + firePayment.key );
+          updateoperator.update({
+            'colppyId': response['data'].response.idFactura,
+            'number': consecutive
+          });
+
+          /*var updateoperator = this.db.ref('accounting/payments/' + firePayment.operator + '/' + firePayment.key + '/colppyId');
           updateoperator.set(response['data'].response.idFactura);
+          var updateoperator = this.db.ref('accounting/payments/' + firePayment.operator + '/' + firePayment.key + '/number');
+          updateoperator.set(consecutive);*/
           resolve(firePayment.key);
         }
       })
@@ -89,7 +99,7 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
                   parseFloat(firePayment.iva?firePayment.iva:'0') - 
                   ( parseFloat(firePayment.reteFuente?firePayment.reteFuente:'0') + 
                     parseFloat(firePayment.ica?firePayment.ica:'0'));
-    return {
+    let returnValue = {
       "auth": this.auth,
       "service": {
         "provision": "FacturaCompra",
@@ -121,9 +131,6 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
         "nroFactura1": "",
         "nroFactura2": '' + consecutive,
         "percepcionIIBB": "0",
-        "idTipoRetencion": "2",
-        "RETE": "S",
-        "percepcionIVA": "0.00",
         "itemsFactura": [{
           "idItem": 0,
           "tipoItem": "",
@@ -136,20 +143,7 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
           "Cantidad": 1,
           "ImporteUnitario": firePayment.totalPago,
           "IVA": "4",
-          "idPlanCuenta": "133005 A PROVEEDORES"
-        }
-        ],
-        "itemsPagos": [{
-          "idMedioPago": "Transferencia",
-          "idPlanCuenta": "Banco 1",
-          "nroCheque": "",
-          "fechaValidez": "",
-          "importe": '' + totalpago,
-          "idTabla": 0,
-          "idElemento": 0,
-          "idItem": 0,
-          "CED": "S",
-          "Conciliado": ""
+          "idPlanCuenta": firePayment.ctaPago
         }
         ],
         "tipoFactura": "Contado",
@@ -171,5 +165,47 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
         ]
       }
     }
+    //ahora agregamos los datos de la rtFte
+    if(firePayment.idRteFte && firePayment.reteFuente && firePayment.reteFuente > 0){
+      returnValue.parameters['idTipoRetencion'] = firePayment.idRteFte;
+      returnValue.parameters['RETE'] = 'S';
+      returnValue.parameters['percepcionIVA'] = "" + firePayment.reteFuente;
+    }else{
+      returnValue.parameters['idTipoRetencion'] = "";
+      returnValue.parameters['percepcionIVA'] = 0;
+    }
+    //finalmente setamos la informacion del pago
+    if(firePayment.paymentMethod === 0){
+      //pago en efectivo
+      returnValue.parameters['itemsPagos'] = [{
+          "idMedioPago": "Efectivo",
+          "idPlanCuenta": "Caja General",
+          "nroCheque": "",
+          "fechaValidez": "",
+          "importe": '' + totalpago,
+          "idTabla": 0,
+          "idElemento": 0,
+          "idItem": 0,
+          "CED": "S",
+          "Conciliado": ""
+        }];
+    }else{
+      //transferencia
+      returnValue.parameters['itemsPagos'] = [{
+          "idMedioPago": "Transferencia",
+          "idPlanCuenta": "Banco 1",
+          "nroCheque": "",
+          "fechaValidez": "",
+          "importe": '' + totalpago,
+          "idTabla": 0,
+          "idElemento": 0,
+          "idItem": 0,
+          "CED": "S",
+          "Conciliado": ""
+        }];
+    }
+
+    return returnValue;
+
   }
 }
