@@ -89,6 +89,7 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
               var invoiceId = response['data'].response.idfactura;
               dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/colppyId'] = invoiceId;
               dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
+              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/companyId'] = operator.colppyId;
               fireInvoice.colppyId = invoiceId;
               this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
               return fbRef.update(dataToUpdate);

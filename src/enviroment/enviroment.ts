@@ -21,7 +21,7 @@ export class Enviroment{
   };
 
   //public static SYS_CONFIG = (Enviroment.prod? Enviroment.production : Enviroment.development);
-  public static SYS_CONFIG = Enviroment.development;
+  public static SYS_CONFIG = Enviroment.production;
 
 
 }
