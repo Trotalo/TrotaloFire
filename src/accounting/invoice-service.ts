@@ -26,6 +26,11 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
       let operator: any;
       let trxdate =  new Date();
       var getOperator = this.db.ref('operators/' + fireInvoice.operator);
+      if(fireInvoice.factId){
+        //en caso que la factura ya exista retornamos
+        resolve(fireInvoice.key);
+        return;
+      }
       //we check that we have a client id
       if(fireInvoice.clientNameRef.match(/[a-z]/i)){
          this.logger.log('error', 'El cliente ', fireInvoice.clientName, ' no posee un codigo de colppy');
