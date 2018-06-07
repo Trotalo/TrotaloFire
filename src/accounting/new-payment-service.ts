@@ -22,7 +22,7 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
 
   createBizObject(firePayment: any){
     return new Promise((resolve: any, reject: any) =>{
-      if(firePayment.status === 0){
+      if(firePayment.status === 0 || firePayment.colppyId){
         //en caso que no se halla completado el cobro no continuamos
         resolve(firePayment.key);
         return;
