@@ -77,7 +77,8 @@ export class NewPaymentService extends ColppyBase implements IFireBizService{
 
   private getPaymentId(providerId:string, operatorId: string){
     return new Promise((resolve:any, reject:any)=>{
-      this.db.app.database().ref().child('accounting/providers/'+ operatorId +'/' + providerId + '/paymentId')
+      //this.db.app.database().ref().child('accounting/providers/'+ operatorId +'/' + providerId + '/paymentId')
+      this.db.app.database().ref().child('operators/paymentConsecutive'+ operatorId)
         .transaction((count) =>{
           return count ? ++count : 1;
         }, (err, committed, ss)=>{
