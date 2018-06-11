@@ -47,61 +47,27 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
             })
             .then((snapshot)=>{
               operator = snapshot.val();
-              //redondeamos el impuesto
               fireInvoice.taxes = Math.round( fireInvoice.taxes );
               fireInvoice.total = Math.round( fireInvoice.total );
-              /*if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
-                operation = 1;
-                this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
-                //first we retrieve the invoice
-                let invoiceReqQery = this.getInvoiceMsg(operator.colppyId, fireInvoice.colppyId);
-                return this.makeHttpPost(this.endpoint, invoiceReqQery);
-              }else{*/
-                operation = 0;
-                return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact, 'FAV');
-              //}
+              return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact, 'FAV');
             })
             .then((response)=>{
               let nextNumber: any;
               let send = false;
-              //if(operation === 0){//nueva operacion
-                nextNumber = response;
-                return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);
-              /*}else{
-                let infoFactura = response['data'].response.infofactura;
-                    this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-'
-                                              + infoFactura.nroFactura2);
-                    let changed: boolean = false;
-                    //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
-                    if(infoFactura.descripcion.toUpperCase() !== fireInvoice.activitySold.toUpperCase()
-                        || infoFactura.netoNoGravado.toUpperCase() !== fireInvoice.thirdParty.toUpperCase()
-                        || infoFactura.netoGravado.toUpperCase() !== fireInvoice.agency.toUpperCase()
-                      ){
-                      nextNumber = {
-                        "prefix": infoFactura.nroFactura1,
-                        "number": infoFactura.nroFactura2,
-                      };
-                      return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);
-                    }
-              }*/
-
+              nextNumber = response;
+              return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);
             })//Here we update the object or register a log
             .then((response)=>{
-              //if(operation === 0){
-                let dataToUpdate = {};
-                let fbRef = this.db.ref();
+              let dataToUpdate = {};
+              let fbRef = this.db.ref();
 
-                var invoiceId = response['data'].response.idfactura;
-                dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/colppyId'] = invoiceId;
-                dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
-                dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/companyId'] = operator.colppyId;
-                fireInvoice.colppyId = invoiceId;
-                this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
-                return fbRef.update(dataToUpdate);
-              /*}else{
-                this.logger.log('info', 'Se actualizo factura: ' , fireInvoice.factId);
-              }*/
-
+              var invoiceId = response['data'].response.idfactura;
+              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/colppyId'] = invoiceId;
+              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
+              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/companyId'] = operator.colppyId;
+              fireInvoice.colppyId = invoiceId;
+              this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
+              return fbRef.update(dataToUpdate);
             })
             .then((response)=>{
               this.logger.log('info', 'Finalized transaction for ' , fireInvoice.key);

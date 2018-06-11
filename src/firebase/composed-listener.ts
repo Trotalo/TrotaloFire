@@ -37,12 +37,6 @@ export class ComposedListener implements IFireListener {
       listener.initListener();
 
     });
-
-    //TODO still pending to solve a bug related to a double call when the systems starts and there's just one element
-    ref.once('child_added', (snapshot: any) => {
-      console.log('Se inicializo el listener ' + this.route + ' con ' + count + ' registros');
-      this.initialized = true;
-    });
   }
 
 

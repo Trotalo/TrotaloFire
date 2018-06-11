@@ -28,7 +28,7 @@ export class FireListener implements IFireListener{
     var ref = this.db.ref(this.route);
     var count = 0;
     //we create the listener for a change
-    ref.on('child_changed', (snapshot: any) => {
+    /*ref.on('child_changed', (snapshot: any) => {
       if(this.initialized && !this.inProgress[snapshot.key]){
         var param = snapshot.val();
         param.key = snapshot.key;
@@ -43,7 +43,7 @@ export class FireListener implements IFireListener{
             delete this.inProgress[key];
           });
       }
-    });
+    });*/
 
     //the the listener for a new element
     ref.on('child_added', (snapshot: any) => {
