@@ -140,7 +140,7 @@ export class ColppyBase{
     }); 
   }
 
-  public getNextInvoiceNumber(idEmpresa: any, idFacturacion: any){
+  public getNextInvoiceNumber(idEmpresa: any, idFacturacion: any, tipo: string){
     return new Promise((resolve: any, reject: any) =>{
       //setTimeout(() => resolve(), N);
       var getNextInvReq = {
@@ -155,7 +155,7 @@ export class ColppyBase{
             "claveSesion": this.currentKey
           },
           "idEmpresa": idEmpresa,
-          "idTipoComprobante": "FAV",
+          "idTipoComprobante": tipo,
           "nroResolucion": idFacturacion
         }
       };

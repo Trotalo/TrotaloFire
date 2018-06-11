@@ -48,7 +48,7 @@ export class FireListener implements IFireListener{
     //the the listener for a new element
     ref.on('child_added', (snapshot: any) => {
       count++;
-      if(this.initialized){
+      if(this.initialized && !this.inProgress[snapshot.key]){
         var param = snapshot.val();
         param.key = snapshot.key;
         this.inProgress[param.key] = true;

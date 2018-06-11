@@ -26,99 +26,101 @@ export class InvoiceService extends ColppyBase implements IFireBizService{
       let operator: any;
       let trxdate =  new Date();
       var getOperator = this.db.ref('operators/' + fireInvoice.operator);
-      if(fireInvoice.factId){
+      if(fireInvoice.factId || fireInvoice.colppyId){
         //en caso que la factura ya exista retornamos
         resolve(fireInvoice.key);
         return;
-      }
-      //we check that we have a client id
-      if(fireInvoice.clientNameRef.match(/[a-z]/i)){
-         this.logger.log('error', 'El cliente ', fireInvoice.clientName, ' no posee un codigo de colppy');
-         this.recordError('accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/disabled',
-                         'El cliente '  + fireInvoice.clientName + ' no posee un codigo de colppy',
-                         trxdate,
-                         fireInvoice.creator, 'Facturacion');
-         reject(fireInvoice.key);
       }else{
+        //we check that we have a client id
+        if(fireInvoice.clientNameRef.match(/[a-z]/i)){
+           this.logger.log('error', 'El cliente ', fireInvoice.clientName, ' no posee un codigo de colppy');
+           this.recordError('accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/disabled',
+                           'El cliente '  + fireInvoice.clientName + ' no posee un codigo de colppy',
+                           trxdate,
+                           fireInvoice.creator, 'Facturacion');
+           reject(fireInvoice.key);
+        }else{
 
-        this.openSession()
-          .then((res)=>{
-            return getOperator.once('value');
-          })
-          .then((snapshot)=>{
-            operator = snapshot.val();
-            //redondeamos el impuesto
-            fireInvoice.taxes = Math.round( fireInvoice.taxes );
-            fireInvoice.total = Math.round( fireInvoice.total );
-            if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
-              operation = 1;
-              this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
-              //first we retrieve the invoice
-              let invoiceReqQery = this.getInvoiceMsg(operator.colppyId, fireInvoice.colppyId);
-              return this.makeHttpPost(this.endpoint, invoiceReqQery);
-            }else{
-              operation = 0;
-              return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact);
-            }
-          })
-          .then((response)=>{
-            let nextNumber: any;
-            let send = false;
-            if(operation === 0){//nueva operacion
-              nextNumber = response;
-              return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);
-            }else{
-              let infoFactura = response['data'].response.infofactura;
-                  this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-'
-                                            + infoFactura.nroFactura2);
-                  let changed: boolean = false;
-                  //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
-                  if(infoFactura.descripcion.toUpperCase() !== fireInvoice.activitySold.toUpperCase()
-                      || infoFactura.netoNoGravado.toUpperCase() !== fireInvoice.thirdParty.toUpperCase()
-                      || infoFactura.netoGravado.toUpperCase() !== fireInvoice.agency.toUpperCase()
-                    ){
-                    nextNumber = {
-                      "prefix": infoFactura.nroFactura1,
-                      "number": infoFactura.nroFactura2,
-                    };
-                    return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);
-                  }
-            }
+          this.openSession()
+            .then((res)=>{
+              return getOperator.once('value');
+            })
+            .then((snapshot)=>{
+              operator = snapshot.val();
+              //redondeamos el impuesto
+              fireInvoice.taxes = Math.round( fireInvoice.taxes );
+              fireInvoice.total = Math.round( fireInvoice.total );
+              /*if(fireInvoice.colppyId && fireInvoice.colppyId.length > 0){
+                operation = 1;
+                this.logger.log('info', 'solictud de modificacion para: ', fireInvoice.operator);
+                //first we retrieve the invoice
+                let invoiceReqQery = this.getInvoiceMsg(operator.colppyId, fireInvoice.colppyId);
+                return this.makeHttpPost(this.endpoint, invoiceReqQery);
+              }else{*/
+                operation = 0;
+                return this.getNextInvoiceNumber(operator.colppyId, operator.colppyResfact, 'FAV');
+              //}
+            })
+            .then((response)=>{
+              let nextNumber: any;
+              let send = false;
+              //if(operation === 0){//nueva operacion
+                nextNumber = response;
+                return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.newInvoiceMsg);
+              /*}else{
+                let infoFactura = response['data'].response.infofactura;
+                    this.logger.log('info', 'Se obtuvo factura: ', infoFactura.nroFactura1 + '-'
+                                              + infoFactura.nroFactura2);
+                    let changed: boolean = false;
+                    //verificamos todos los posibles cambios, y si se presentan cambios creamos el nuevl request
+                    if(infoFactura.descripcion.toUpperCase() !== fireInvoice.activitySold.toUpperCase()
+                        || infoFactura.netoNoGravado.toUpperCase() !== fireInvoice.thirdParty.toUpperCase()
+                        || infoFactura.netoGravado.toUpperCase() !== fireInvoice.agency.toUpperCase()
+                      ){
+                      nextNumber = {
+                        "prefix": infoFactura.nroFactura1,
+                        "number": infoFactura.nroFactura2,
+                      };
+                      return this.sendInvoiceMsg(fireInvoice, operator, nextNumber, this.updateInvoiceMsg);
+                    }
+              }*/
 
-          })//Here we update the object or register a log
-          .then((response)=>{
-            if(operation === 0){
-              let dataToUpdate = {};
-              let fbRef = this.db.ref();
+            })//Here we update the object or register a log
+            .then((response)=>{
+              //if(operation === 0){
+                let dataToUpdate = {};
+                let fbRef = this.db.ref();
 
-              var invoiceId = response['data'].response.idfactura;
-              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/colppyId'] = invoiceId;
-              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
-              dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/companyId'] = operator.colppyId;
-              fireInvoice.colppyId = invoiceId;
-              this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
-              return fbRef.update(dataToUpdate);
-            }else{
-              this.logger.log('info', 'Se actualizo factura: ' , fireInvoice.factId);
-            }
+                var invoiceId = response['data'].response.idfactura;
+                dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/colppyId'] = invoiceId;
+                dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/factId'] = response['data'].response.nroFactura;
+                dataToUpdate['accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/companyId'] = operator.colppyId;
+                fireInvoice.colppyId = invoiceId;
+                this.logger.log('info', 'Nueva factura con id: ' , invoiceId);
+                return fbRef.update(dataToUpdate);
+              /*}else{
+                this.logger.log('info', 'Se actualizo factura: ' , fireInvoice.factId);
+              }*/
 
-          })
-          .then((response)=>{
-            this.logger.log('info', 'Finalized transaction for ' , fireInvoice.key);
-            return this.sendInvoiceEmail(fireInvoice, operator, fireInvoice.colppyId);
-          })
-          .then((response)=>{
-            resolve(fireInvoice.key);
-          })
-          .catch((error)=>{
-              this.recordError('accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/disabled',
-                         error,
-                         trxdate,
-                         fireInvoice.creator,
-                         'Facturacion');
-              reject(fireInvoice.key);
-          });
+            })
+            .then((response)=>{
+              this.logger.log('info', 'Finalized transaction for ' , fireInvoice.key);
+              return this.sendInvoiceEmail(fireInvoice, operator, fireInvoice.colppyId);
+            })
+            .then((response)=>{
+              resolve(fireInvoice.key);
+            })
+            .catch((error)=>{
+                this.recordError('accounting/invoices/' + fireInvoice.operator + '/' + fireInvoice.key + '/disabled',
+                           error,
+                           trxdate,
+                           fireInvoice.creator,
+                           'Facturacion');
+                reject(fireInvoice.key);
+            });
+        }  
       }
+      
     });
   }
 

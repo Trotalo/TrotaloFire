@@ -6,6 +6,7 @@ import { NewClientService } from '../accounting/new-client-service';
 import { NewProviderService } from '../accounting/new-provider-service';
 import { InvoiceService } from '../accounting/invoice-service';
 import { NewPaymentService } from '../accounting/new-payment-service';
+import { NewInvoicePaymentService } from '../accounting/new-invoice-payment-service';
 
 import { Enviroment } from '../enviroment/enviroment';
 
@@ -38,18 +39,16 @@ export class FireController{
   constructor(){
     //first we initialize the
     this.initFirebaseConnection();
-    /*this.listeners.push(new FireListener('accounting/clients', admin.database(), new NewClientService()));
-    this.listeners.push(new FireListener('accounting/invoices', admin.database(), new InvoiceService()));*/
 
     this.listeners.push(new ComposedListener('accounting/clients', admin.database(), NewClientService));
     this.listeners.push(new ComposedListener('accounting/providers', admin.database(), NewProviderService));
     this.listeners.push(new ComposedListener('accounting/invoices', admin.database(), InvoiceService));
     this.listeners.push(new ComposedListener('accounting/payments', admin.database(), NewPaymentService));
+    this.listeners.push(new ComposedListener('accounting/income', admin.database(), NewInvoicePaymentService));
+    //
 
-    //this.logger.log('info', 'Connected to: ', this.serviceAccount);
-    /*this.listeners.push(new FireListener('camicase2'));
-    this.listeners.push(new FireListener('camicase3'));
-    this.listeners.push(new FireListener('camicase4'));*/
+    this.logger.log('info', 'Connected to: ', this.serviceAccount);
+    
 
 
   }
